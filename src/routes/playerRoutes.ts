@@ -3,6 +3,7 @@ import PlayerController from "../controllers/playerController";
 
 const router = express.Router();
 
-router.get("/", PlayerController.getAllPlayers);
+router.get("/", PlayerController.getPlayers);
+router.post("/register/:sportId", PlayerController.postPlayer);
 
 export default router;
