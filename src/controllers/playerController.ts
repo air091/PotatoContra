@@ -179,6 +179,39 @@ class PlayerController {
       });
     }
   };
+
+  static deletePlayer = async (request: Request, response: Response) => {
+    try {
+      const { playerId } = request.params;
+
+      if (!playerId)
+        return response
+          .status(400)
+          .json({ success: false, message: "playerId is required" });
+
+      const player = await prisma.player.findUnique({
+        where: { id: playerId as string },
+      });
+
+      if (!player)
+        return response
+          .status(404)
+          .json({ success: false, message: "Player not found" });
+
+      await prisma.player.delete({
+        where: { id: playerId as string },
+      });
+
+      return response.status(204).json({});
+    } catch (error: any) {
+      console.error(`Delete player failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Delete player failed",
+        error_message: error.message,
+      });
+    }
+  };
 }
 
 export default PlayerController;
