@@ -1,0 +1,32 @@
+{
+  "name": "potatocontra",
+  "version": "1.0.0",
+  "description": "<img width=\"1190\" height=\"784\" alt=\"image\" src=\"https://github.com/user-attachments/assets/27b1cd88-9ca6-406b-84a4-9e7fa1e3ee4e\" />",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "tsx --watch src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/air091/PotatoContra.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/air091/PotatoContra/issues"
+  },
+  "homepage": "https://github.com/air091/PotatoContra#readme",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "prisma": "^7.5.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.5.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}

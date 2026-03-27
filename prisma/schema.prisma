@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Sport {
+  id        String @id @default(uuid())
+  name      String
+  players   Player[]
+  courts    Court[]
+  teams     Team[]
+  matches   Match[]
+}
+
+enum SkillLevel {
+  beginner
+  intermediate
+  expert
+}
+
+model Player {
+  id                String @id @default(uuid())
+  name              String
+  sportId           String
+  skillLevel        SkillLevel @default(beginner)
+  paymentStatus     Boolean @default(false)
+  createdAt         DateTime @default(now())
+  sport             Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teams             TeamPlayer[]
+  @@index([sportId])
+}
+
+model Team {
+  id            String @id @default(uuid())
+  sportId       String
+  sport         Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamPlayers   TeamPlayer[]
+  teamAMatches  Match[] @relation("TeamA")
+  teamBMatches  Match[] @relation("TeamB")
+  @@index([sportId])
+}
+
+model TeamPlayer {
+  teamId                  String
+  playerId                String
+  role                    String?
+  team                    Team @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  player                  Player @relation(fields: [playerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  @@id([teamId, playerId])
+  @@index([teamId])
+  @@index([playerId])
+}
+
+model Court {
+  id                String @id @default(uuid())
+  name              String
+  sportId           String
+  isActive          Boolean @default(true)
+  sport             Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  matches           Match[]
+  @@index([sportId])
+}
+
+model Match {
+  id              String @id @default(uuid())
+  sportId         String
+  teamAId         String
+  teamBId         String
+  courtId         String?
+  queuedAt        DateTime?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  scoreA          Int @default(0)
+  scoreB          Int @default(0)
+  winnerTeam      String?
+  sport           Sport           @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamA           Team            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamB           Team            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  court           Court?          @relation(fields: [courtId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  @@index([sportId])
+  @@index([teamAId])
+  @@index([teamBId])
+  @@index([courtId])
+}
