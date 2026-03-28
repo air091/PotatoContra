@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors";
 
 dotenv.config();
 
@@ -12,6 +13,12 @@ import matchRoutes from "./routes/matchRoutes";
 const app = express();
 const port = process.env.PORT ?? "3000";
 
+app.use(
+  cors({
+    credentials: true,
+    origin: "http://localhost:5173/",
+  }),
+);
 app.use(express.json());
 
 app.use("/api/sports", sportRoutes);
