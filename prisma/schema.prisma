@@ -36,6 +36,7 @@ model Player {
   createdAt         DateTime @default(now())
   sport             Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   teams             TeamPlayer[]
+  matchPlayers      MatchPlayer[]
   @@index([sportId])
 }
 
@@ -44,6 +45,7 @@ model Team {
   sportId       String
   sport         Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   teamPlayers   TeamPlayer[]
+  matchPlayers  MatchPlayer[]
   teamAMatches  Match[] @relation("TeamA")
   teamBMatches  Match[] @relation("TeamB")
   @@index([sportId])
@@ -86,8 +88,23 @@ model Match {
   teamA           Team            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   teamB           Team            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   court           Court?          @relation(fields: [courtId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  matchPlayers    MatchPlayer[]
   @@index([sportId])
   @@index([teamAId])
   @@index([teamBId])
   @@index([courtId])
+}
+
+model MatchPlayer {
+  matchId    String
+  playerId   String
+  teamId     String
+  createdAt  DateTime @default(now())
+  match      Match @relation(fields: [matchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  player     Player @relation(fields: [playerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  team       Team @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([matchId, playerId])
+  @@index([playerId])
+  @@index([teamId])
 }
