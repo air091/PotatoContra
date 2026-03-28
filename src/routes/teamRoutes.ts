@@ -8,5 +8,6 @@ router.get("/sports/:sportId", TeamController.getTeams);
 router.delete("/sports/:sportId", TeamController.deleteTeam);
 
 router.post("/add/players/sports/:sportId", TeamController.postTeamPlayer);
+router.delete("/players/sports/:sportId", TeamController.deleteTeamPlayer);
 
 export default router;
