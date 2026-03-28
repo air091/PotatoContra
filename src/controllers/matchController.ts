@@ -22,6 +22,20 @@ const deriveWinnerTeam = (
   return scoreA > scoreB ? teamAId : teamBId;
 };
 
+const normalizePlayerIds = (value: unknown) => {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return "invalid";
+
+  const normalizedIds = value
+    .filter((playerId): playerId is string => typeof playerId === "string")
+    .map((playerId) => playerId.trim())
+    .filter((playerId) => playerId.length > 0);
+
+  if (normalizedIds.length !== value.length) return "invalid";
+
+  return [...new Set(normalizedIds)];
+};
+
 class MatchController {
   static getMatches = async (request: Request, response: Response) => {
     try {
@@ -42,6 +56,12 @@ class MatchController {
           teamA: { include: { teamPlayers: true } },
           teamB: { include: { teamPlayers: true } },
           court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
         },
         orderBy: [{ queuedAt: "asc" }, { startedAt: "asc" }, { id: "asc" }],
       });
@@ -70,6 +90,8 @@ class MatchController {
         scoreA,
         scoreB,
         winnerTeam,
+        teamAPlayerIds,
+        teamBPlayerIds,
       } = request.body;
 
       const sportExist = await prisma.sport.findUnique({
@@ -96,9 +118,11 @@ class MatchController {
       const [teamAExist, teamBExist] = await Promise.all([
         prisma.team.findFirst({
           where: { id: teamAId as string, sportId: sportId as string },
+          include: { teamPlayers: true },
         }),
         prisma.team.findFirst({
           where: { id: teamBId as string, sportId: sportId as string },
+          include: { teamPlayers: true },
         }),
       ]);
 
@@ -127,6 +151,8 @@ class MatchController {
       const parsedQueuedAt = parseOptionalDate(queuedAt);
       const parsedStartedAt = parseOptionalDate(startedAt);
       const parsedEndedAt = parseOptionalDate(endedAt);
+      const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
+      const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
 
       if (
         parsedQueuedAt === "invalid" ||
@@ -136,6 +162,15 @@ class MatchController {
         return response.status(400).json({
           success: false,
           message: "queuedAt, startedAt and endedAt must be valid ISO dates",
+        });
+
+      if (
+        normalizedTeamAPlayerIds === "invalid" ||
+        normalizedTeamBPlayerIds === "invalid"
+      )
+        return response.status(400).json({
+          success: false,
+          message: "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
         });
 
       if (
@@ -187,6 +222,47 @@ class MatchController {
           message: "winnerTeam must match the computed result from scoreA and scoreB",
         });
 
+      const teamAPlayerIdsToUse =
+        normalizedTeamAPlayerIds ??
+        teamAExist.teamPlayers.map((teamPlayer) => teamPlayer.playerId);
+      const teamBPlayerIdsToUse =
+        normalizedTeamBPlayerIds ??
+        teamBExist.teamPlayers.map((teamPlayer) => teamPlayer.playerId);
+
+      const teamAPlayerSet = new Set(
+        teamAExist.teamPlayers.map((teamPlayer) => teamPlayer.playerId),
+      );
+      const teamBPlayerSet = new Set(
+        teamBExist.teamPlayers.map((teamPlayer) => teamPlayer.playerId),
+      );
+
+      const invalidTeamAPlayer = teamAPlayerIdsToUse.find(
+        (playerId) => !teamAPlayerSet.has(playerId),
+      );
+      if (invalidTeamAPlayer)
+        return response.status(400).json({
+          success: false,
+          message: "All teamAPlayerIds must belong to teamA",
+        });
+
+      const invalidTeamBPlayer = teamBPlayerIdsToUse.find(
+        (playerId) => !teamBPlayerSet.has(playerId),
+      );
+      if (invalidTeamBPlayer)
+        return response.status(400).json({
+          success: false,
+          message: "All teamBPlayerIds must belong to teamB",
+        });
+
+      const duplicateParticipant = teamAPlayerIdsToUse.find((playerId) =>
+        teamBPlayerIdsToUse.includes(playerId),
+      );
+      if (duplicateParticipant)
+        return response.status(400).json({
+          success: false,
+          message: "A player cannot appear on both sides of the same match",
+        });
+
       const match = await prisma.match.create({
         data: {
           sportId: sportId as string,
@@ -199,11 +275,29 @@ class MatchController {
           scoreA: nextScoreA,
           scoreB: nextScoreB,
           winnerTeam: computedWinnerTeam,
+          matchPlayers: {
+            create: [
+              ...teamAPlayerIdsToUse.map((playerId) => ({
+                playerId,
+                teamId: teamAId as string,
+              })),
+              ...teamBPlayerIdsToUse.map((playerId) => ({
+                playerId,
+                teamId: teamBId as string,
+              })),
+            ],
+          },
         },
         include: {
           teamA: true,
           teamB: true,
           court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
         },
       });
 
@@ -231,10 +325,17 @@ class MatchController {
         scoreA,
         scoreB,
         winnerTeam,
+        teamAPlayerIds,
+        teamBPlayerIds,
       } = request.body;
 
       const matchExist = await prisma.match.findUnique({
         where: { id: matchId as string },
+        include: {
+          teamA: { include: { teamPlayers: true } },
+          teamB: { include: { teamPlayers: true } },
+          matchPlayers: true,
+        },
       });
 
       if (!matchExist)
@@ -255,9 +356,11 @@ class MatchController {
         const [teamAExist, teamBExist] = await Promise.all([
           prisma.team.findFirst({
             where: { id: nextTeamAId, sportId: matchExist.sportId },
+            include: { teamPlayers: true },
           }),
           prisma.team.findFirst({
             where: { id: nextTeamBId, sportId: matchExist.sportId },
+            include: { teamPlayers: true },
           }),
         ]);
 
@@ -267,6 +370,21 @@ class MatchController {
             message: "One or both teams were not found for this sport",
           });
       }
+
+      const nextTeamA =
+        teamAId !== undefined
+          ? await prisma.team.findFirst({
+              where: { id: nextTeamAId, sportId: matchExist.sportId },
+              include: { teamPlayers: true },
+            })
+          : matchExist.teamA;
+      const nextTeamB =
+        teamBId !== undefined
+          ? await prisma.team.findFirst({
+              where: { id: nextTeamBId, sportId: matchExist.sportId },
+              include: { teamPlayers: true },
+            })
+          : matchExist.teamB;
 
       if (courtId !== undefined && courtId !== null && courtId !== "") {
         const courtExist = await prisma.court.findFirst({
@@ -287,6 +405,8 @@ class MatchController {
       const parsedQueuedAt = parseOptionalDate(queuedAt);
       const parsedStartedAt = parseOptionalDate(startedAt);
       const parsedEndedAt = parseOptionalDate(endedAt);
+      const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
+      const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
 
       if (
         parsedQueuedAt === "invalid" ||
@@ -296,6 +416,15 @@ class MatchController {
         return response.status(400).json({
           success: false,
           message: "queuedAt, startedAt and endedAt must be valid ISO dates",
+        });
+
+      if (
+        normalizedTeamAPlayerIds === "invalid" ||
+        normalizedTeamBPlayerIds === "invalid"
+      )
+        return response.status(400).json({
+          success: false,
+          message: "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
         });
 
       if (
@@ -350,6 +479,58 @@ class MatchController {
           message: "winnerTeam must match teamAId or teamBId",
         });
 
+      const currentTeamAPlayerIds = matchExist.matchPlayers
+        .filter((matchPlayer) => matchPlayer.teamId === nextTeamAId)
+        .map((matchPlayer) => matchPlayer.playerId);
+      const currentTeamBPlayerIds = matchExist.matchPlayers
+        .filter((matchPlayer) => matchPlayer.teamId === nextTeamBId)
+        .map((matchPlayer) => matchPlayer.playerId);
+
+      const teamAPlayerIdsToUse =
+        normalizedTeamAPlayerIds ??
+        (teamAId !== undefined
+          ? nextTeamA?.teamPlayers.map((teamPlayer) => teamPlayer.playerId) ?? []
+          : currentTeamAPlayerIds);
+      const teamBPlayerIdsToUse =
+        normalizedTeamBPlayerIds ??
+        (teamBId !== undefined
+          ? nextTeamB?.teamPlayers.map((teamPlayer) => teamPlayer.playerId) ?? []
+          : currentTeamBPlayerIds);
+
+      const nextTeamAPlayerSet = new Set(
+        (nextTeamA?.teamPlayers ?? []).map((teamPlayer) => teamPlayer.playerId),
+      );
+      const nextTeamBPlayerSet = new Set(
+        (nextTeamB?.teamPlayers ?? []).map((teamPlayer) => teamPlayer.playerId),
+      );
+
+      const invalidTeamAPlayer = teamAPlayerIdsToUse.find(
+        (playerId) => !nextTeamAPlayerSet.has(playerId),
+      );
+      if (invalidTeamAPlayer)
+        return response.status(400).json({
+          success: false,
+          message: "All teamAPlayerIds must belong to teamA",
+        });
+
+      const invalidTeamBPlayer = teamBPlayerIdsToUse.find(
+        (playerId) => !nextTeamBPlayerSet.has(playerId),
+      );
+      if (invalidTeamBPlayer)
+        return response.status(400).json({
+          success: false,
+          message: "All teamBPlayerIds must belong to teamB",
+        });
+
+      const duplicateParticipant = teamAPlayerIdsToUse.find((playerId) =>
+        teamBPlayerIdsToUse.includes(playerId),
+      );
+      if (duplicateParticipant)
+        return response.status(400).json({
+          success: false,
+          message: "A player cannot appear on both sides of the same match",
+        });
+
       const updatedData: {
         teamAId?: string;
         teamBId?: string;
@@ -397,10 +578,58 @@ class MatchController {
           teamA: true,
           teamB: true,
           court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
         },
       });
 
-      return response.status(200).json({ success: true, match });
+      const shouldReplaceParticipants =
+        teamAPlayerIds !== undefined ||
+        teamBPlayerIds !== undefined ||
+        teamAId !== undefined ||
+        teamBId !== undefined;
+
+      if (shouldReplaceParticipants) {
+        await prisma.matchPlayer.deleteMany({
+          where: { matchId: matchId as string },
+        });
+
+        await prisma.matchPlayer.createMany({
+          data: [
+            ...teamAPlayerIdsToUse.map((playerId) => ({
+              matchId: matchId as string,
+              playerId,
+              teamId: nextTeamAId,
+            })),
+            ...teamBPlayerIdsToUse.map((playerId) => ({
+              matchId: matchId as string,
+              playerId,
+              teamId: nextTeamBId,
+            })),
+          ],
+        });
+      }
+
+      const updatedMatch = await prisma.match.findUnique({
+        where: { id: matchId as string },
+        include: {
+          teamA: true,
+          teamB: true,
+          court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
+        },
+      });
+
+      return response.status(200).json({ success: true, match: updatedMatch ?? match });
     } catch (error: any) {
       console.error(`Patch match failed ${error}`);
       return response.status(500).json({
