@@ -8,7 +8,7 @@ import playerRoutes from "./routes/playerRoutes";
 import courtRoutes from "./routes/courtRoutes";
 
 const app = express();
-const port = process.env.PORT as string;
+const port = process.env.PORT ?? "3000";
 
 app.use(express.json());
 

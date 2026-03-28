@@ -4,6 +4,7 @@
   "description": "<img width=\"1190\" height=\"784\" alt=\"image\" src=\"https://github.com/user-attachments/assets/27b1cd88-9ca6-406b-84a4-9e7fa1e3ee4e\" />",
   "main": "index.js",
   "scripts": {
+    "generate": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "tsx --watch src/index.js"
   },
