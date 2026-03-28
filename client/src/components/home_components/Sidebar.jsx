@@ -1,47 +1,29 @@
 import { NavLink } from "react-router-dom";
-import { LuPlus } from "react-icons/lu";
-import { useEffect, useState } from "react";
 
-const Sidebar = () => {
-  const [sports, setSports] = useState([]);
-
-  const getSportsAPI = async () => {
-    try {
-      const response = await fetch("http://localhost:7007/api/sports", {
-        method: "GET",
-        credentials: "include",
-      });
-      const data = await response.json();
-      if (!data.success) throw new Error(data?.message);
-
-      setSports(data.sports);
-    } catch (error) {
-      console.error(`Sports API failed`);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    getSportsAPI();
-  }, []);
-
+const Sidebar = ({ sports, isLoading, error }) => {
   return (
-    <div className="border-2 border-red-500 w-36">
+    <aside className="w-48 shrink-0">
       <ul>
-        {sports.length > 0
-          ? sports.map((sport) => (
-              <li key={sport.id} className="border">
-                <NavLink to={`${sport.id}`} className="">
-                  {sport.name}
-                </NavLink>
-              </li>
-            ))
-          : ""}
+        {sports.map((sport) => (
+          <li key={sport.id}>
+            <NavLink
+              to={`/sports/${sport.id}`}
+              className={({ isActive }) =>
+                `block px-3 py-2 ${isActive ? "font-semibold" : ""}`
+              }
+            >
+              {sport.name}
+            </NavLink>
+          </li>
+        ))}
       </ul>
-      <button className="border flex items-center px-4 py-1 gap-x-2">
-        <LuPlus size={18} /> Sport
-      </button>
-    </div>
+
+      {isLoading ? <p className="px-3 py-2">Loading sports...</p> : null}
+      {!isLoading && !error && sports.length === 0 ? (
+        <p className="px-3 py-2">No sports yet.</p>
+      ) : null}
+      {error ? <p className="px-3 py-2">{error}</p> : null}
+    </aside>
   );
 };
 
