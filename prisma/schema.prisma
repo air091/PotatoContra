@@ -75,8 +75,8 @@ model Court {
 model Match {
   id              String @id @default(uuid())
   sportId         String
-  teamAId         String
-  teamBId         String
+  teamAId         String?
+  teamBId         String?
   courtId         String?
   queuedAt        DateTime?
   startedAt       DateTime?
@@ -85,8 +85,8 @@ model Match {
   scoreB          Int @default(0)
   winnerTeam      String?
   sport           Sport           @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  teamA           Team            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  teamB           Team            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamA           Team?            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamB           Team?            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   court           Court?          @relation(fields: [courtId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   matchPlayers    MatchPlayer[]
   @@index([sportId])
