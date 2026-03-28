@@ -96,7 +96,7 @@ class TeamController {
   static postTeamPlayer = async (request: Request, response: Response) => {
     try {
       const { sportId } = request.params;
-      const { playerId } = request.body;
+      const { teamId, playerId } = request.body;
 
       const sportExist = await prisma.sport.findFirst({
         where: { id: sportId as string },
@@ -107,13 +107,42 @@ class TeamController {
           .status(404)
           .json({ success: false, message: "Sport not found" });
 
-      const team = await prisma.team.create({
-        data: { sportId: sportId as string },
-        select: { id: true },
+      const teamExist = await prisma.team.findFirst({
+        where: { id: teamId as string, sportId: sportId as string },
       });
 
+      if (!teamExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Team not found" });
+
+      const playerExist = await prisma.player.findFirst({
+        where: { id: playerId as string, sportId: sportId as string },
+      });
+
+      if (!playerExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Player not found" });
+
+      const playerInTeam = await prisma.teamPlayer.findFirst({
+        where: { playerId: playerId as string },
+      });
+
+      if (playerInTeam?.teamId === teamId)
+        return response.status(409).json({
+          success: false,
+          message: "Player is already in this team",
+        });
+
+      if (playerInTeam)
+        return response.status(409).json({
+          success: false,
+          message: "Player is already in another team",
+        });
+
       const players = await prisma.teamPlayer.create({
-        data: { teamId: team.id, playerId },
+        data: { teamId, playerId },
       });
 
       return response.status(201).json({ success: true, players });
