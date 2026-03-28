@@ -6,6 +6,7 @@ dotenv.config();
 import sportRoutes from "./routes/sportRoutes";
 import playerRoutes from "./routes/playerRoutes";
 import courtRoutes from "./routes/courtRoutes";
+import teamRoutes from "./routes/teamRoutes";
 
 const app = express();
 const port = process.env.PORT ?? "3000";
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use("/api/sports", sportRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/courts", courtRoutes);
+app.use("/api/teams", teamRoutes);
 
 const startServer = () => {
   try {
