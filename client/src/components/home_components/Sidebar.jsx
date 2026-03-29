@@ -9,7 +9,7 @@ const Sidebar = ({ sports, isLoading, error }) => {
             <NavLink
               to={`/sports/${sport.id}`}
               className={({ isActive }) =>
-                `block px-3 py-2 ${isActive ? "font-semibold" : ""}`
+                `block px-3 py-2 ${isActive ? "font-semibold bg-stone-200" : ""}`
               }
             >
               {sport.name}
