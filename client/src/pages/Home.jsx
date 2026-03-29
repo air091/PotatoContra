@@ -12,6 +12,13 @@ const Home = () => {
   const [playerName, setPlayerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
+  const [editPlayerName, setEditPlayerName] = useState("");
+  const [editSkillLevel, setEditSkillLevel] = useState("beginner");
+  const [editPaymentStatus, setEditPaymentStatus] = useState(false);
+  const [isUpdatingPlayer, setIsUpdatingPlayer] = useState(false);
+  const [deletingPlayerId, setDeletingPlayerId] = useState(null);
+  const [editPlayerError, setEditPlayerError] = useState("");
 
   useEffect(() => {
     if (!selectedSport) {
@@ -62,6 +69,12 @@ const Home = () => {
     setIsAddPlayerOpen(false);
     setPlayerName("");
     setSubmitError("");
+    setActivePlayerMenuId(null);
+    setEditPlayerName("");
+    setEditSkillLevel("beginner");
+    setEditPaymentStatus(false);
+    setDeletingPlayerId(null);
+    setEditPlayerError("");
     getPlayersAPI();
 
     return () => {
@@ -75,6 +88,16 @@ const Home = () => {
     setIsAddPlayerOpen(false);
     setPlayerName("");
     setSubmitError("");
+  };
+
+  const openPlayerMenu = (player) => {
+    setActivePlayerMenuId((currentMenuId) =>
+      currentMenuId === player.id ? null : player.id,
+    );
+    setEditPlayerName(player.name);
+    setEditSkillLevel(player.skillLevel);
+    setEditPaymentStatus(player.paymentStatus);
+    setEditPlayerError("");
   };
 
   const handleAddPlayer = async (event) => {
@@ -152,6 +175,94 @@ const Home = () => {
     }
   };
 
+  const handleEditPlayer = async (event) => {
+    event.preventDefault();
+
+    const trimmedPlayerName = editPlayerName.trim();
+    if (!trimmedPlayerName) {
+      setEditPlayerError("Player name is required.");
+      return;
+    }
+
+    try {
+      setIsUpdatingPlayer(true);
+      setEditPlayerError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/players/${activePlayerMenuId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            name: trimmedPlayerName,
+            skillLevel: editSkillLevel,
+            paymentStatus: editPaymentStatus,
+          }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Update player failed");
+      }
+
+      setPlayers((currentPlayers) =>
+        currentPlayers.map((player) =>
+          player.id === activePlayerMenuId ? data.player : player,
+        ),
+      );
+      setActivePlayerMenuId(null);
+      setEditPlayerName("");
+      setEditSkillLevel("beginner");
+      setEditPaymentStatus(false);
+    } catch (updatePlayerError) {
+      console.error("Update player failed", updatePlayerError);
+      setEditPlayerError(
+        updatePlayerError.message ?? "Unable to update player.",
+      );
+    } finally {
+      setIsUpdatingPlayer(false);
+    }
+  };
+
+  const handleDeletePlayer = async (playerId) => {
+    try {
+      setDeletingPlayerId(playerId);
+      setEditPlayerError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/players/${playerId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok && response.status !== 204) {
+        const data = await response.json();
+        throw new Error(data?.message ?? "Delete player failed");
+      }
+
+      setPlayers((currentPlayers) =>
+        currentPlayers.filter((player) => player.id !== playerId),
+      );
+      setActivePlayerMenuId(null);
+      setEditPlayerName("");
+      setEditSkillLevel("beginner");
+      setEditPaymentStatus(false);
+    } catch (deletePlayerError) {
+      console.error("Delete player failed", deletePlayerError);
+      setEditPlayerError(
+        deletePlayerError.message ?? "Unable to delete player.",
+      );
+    } finally {
+      setDeletingPlayerId(null);
+    }
+  };
+
   if (isLoading) return <div>Loading sports...</div>;
   if (error) return <div>{error}</div>;
   if (sports.length === 0) return <div>No sports available yet.</div>;
@@ -159,7 +270,15 @@ const Home = () => {
 
   return (
     <>
-      <section className="p-4 border max-w-lg">
+      <section
+        className="max-w-lg border p-4"
+        onClick={() => {
+          if (isUpdatingPlayer || deletingPlayerId) return;
+
+          setActivePlayerMenuId(null);
+          setEditPlayerError("");
+        }}
+      >
         <div className="w-full border px-4 py-2">
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-xl font-semibold">{selectedSport.name}</h1>
@@ -194,7 +313,7 @@ const Home = () => {
               {players.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between rounded border px-2 py-1 w-fit gap-x-4"
+                  className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1"
                 >
                   <div>
                     <p className="text-sm font-semibold leading-tight">
@@ -203,10 +322,97 @@ const Home = () => {
                     <p className="text-xs leading-tight">{player.skillLevel}</p>
                   </div>
                   <div>
-                    <button className="cursor-pointer">
+                    <button
+                      type="button"
+                      className="cursor-pointer"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openPlayerMenu(player);
+                      }}
+                    >
                       <IoEllipsisVertical />
                     </button>
                   </div>
+
+                  {activePlayerMenuId === player.id ? (
+                    <div
+                      className="absolute right-0 top-8 z-10 w-56 border bg-white p-3"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <form onSubmit={handleEditPlayer} className="space-y-3">
+                        <label className="block">
+                          <span className="mb-1 block text-xs">Name</span>
+                          <input
+                            type="text"
+                            value={editPlayerName}
+                            onChange={(event) => setEditPlayerName(event.target.value)}
+                            className="w-full border px-2 py-1 text-sm"
+                            disabled={deletingPlayerId === player.id}
+                            autoFocus
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1 block text-xs">Skill</span>
+                          <select
+                            value={editSkillLevel}
+                            onChange={(event) => setEditSkillLevel(event.target.value)}
+                            className="w-full border px-2 py-1 text-sm"
+                            disabled={deletingPlayerId === player.id}
+                          >
+                            <option value="beginner">beginner</option>
+                            <option value="intermediate">intermediate</option>
+                            <option value="expert">expert</option>
+                          </select>
+                        </label>
+
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={editPaymentStatus}
+                            onChange={(event) =>
+                              setEditPaymentStatus(event.target.checked)
+                            }
+                            disabled={deletingPlayerId === player.id}
+                          />
+                          <span>Payment received</span>
+                        </label>
+
+                        {editPlayerError ? (
+                          <p className="text-xs">{editPlayerError}</p>
+                        ) : null}
+
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePlayerMenuId(null);
+                              setEditPlayerError("");
+                            }}
+                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
+                            className="border px-2 py-1 text-xs"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePlayer(player.id)}
+                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
+                            className="border px-2 py-1 text-xs"
+                          >
+                            {deletingPlayerId === player.id ? "Deleting..." : "Delete"}
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
+                            className="border px-2 py-1 text-xs"
+                          >
+                            {isUpdatingPlayer ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
