@@ -6,11 +6,15 @@ import AddPlayerModal from "../components/home_components/AddPlayerModal";
 const Home = () => {
   const { sports, isLoading, error, selectedSport } = useOutletContext();
   const [players, setPlayers] = useState([]);
+  const [courts, setCourts] = useState([]);
   const [isPlayersLoading, setIsPlayersLoading] = useState(false);
+  const [isCourtsLoading, setIsCourtsLoading] = useState(false);
   const [playersError, setPlayersError] = useState("");
+  const [courtsError, setCourtsError] = useState("");
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
   const [editPlayerName, setEditPlayerName] = useState("");
@@ -23,7 +27,9 @@ const Home = () => {
   useEffect(() => {
     if (!selectedSport) {
       setPlayers([]);
+      setCourts([]);
       setPlayersError("");
+      setCourtsError("");
       return;
     }
 
@@ -66,6 +72,43 @@ const Home = () => {
       }
     };
 
+    const getCourtsAPI = async () => {
+      try {
+        setIsCourtsLoading(true);
+        setCourtsError("");
+
+        const response = await fetch(
+          `http://localhost:7007/api/courts/sport/${selectedSport.id}`,
+          {
+            method: "GET",
+            credentials: "include",
+            signal: abortController.signal,
+          },
+        );
+        const data = await response.json();
+
+        if (response.status === 404) {
+          setCourts([]);
+          return;
+        }
+
+        if (!response.ok || !data.success) {
+          throw new Error(data?.message ?? "Courts API failed");
+        }
+
+        setCourts(
+          data.courts.filter((court) => court.sportId === selectedSport.id),
+        );
+      } catch (fetchError) {
+        if (fetchError.name === "AbortError") return;
+
+        console.error("Courts API failed", fetchError);
+        setCourtsError("Unable to load courts.");
+      } finally {
+        setIsCourtsLoading(false);
+      }
+    };
+
     setIsAddPlayerOpen(false);
     setPlayerName("");
     setSubmitError("");
@@ -76,6 +119,7 @@ const Home = () => {
     setDeletingPlayerId(null);
     setEditPlayerError("");
     getPlayersAPI();
+    getCourtsAPI();
 
     return () => {
       abortController.abort();
@@ -263,6 +307,33 @@ const Home = () => {
     }
   };
 
+  const handleAddCourt = async () => {
+    try {
+      setIsCourtSubmitting(true);
+      setCourtsError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/sport/${selectedSport.id}/add`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Add court failed");
+      }
+
+      setCourts((currentCourts) => [...currentCourts, data.court]);
+    } catch (addCourtError) {
+      console.error("Add court failed", addCourtError);
+      setCourtsError(addCourtError.message ?? "Unable to add court.");
+    } finally {
+      setIsCourtSubmitting(false);
+    }
+  };
+
   if (isLoading) return <div>Loading sports...</div>;
   if (error) return <div>{error}</div>;
   if (sports.length === 0) return <div>No sports available yet.</div>;
@@ -270,154 +341,206 @@ const Home = () => {
 
   return (
     <>
-      <section
-        className="max-w-lg border p-4"
-        onClick={() => {
-          if (isUpdatingPlayer || deletingPlayerId) return;
+      <section className="p-4 border-2 border-red-500 flex justify-between">
+        <div className="flex max-w-xl flex-col gap-4">
+          <div
+            className="min-w-0 flex-1 border p-4"
+            onClick={() => {
+              if (isUpdatingPlayer || deletingPlayerId) return;
 
-          setActivePlayerMenuId(null);
-          setEditPlayerError("");
-        }}
-      >
-        <div className="w-full border px-4 py-2">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl font-semibold">{selectedSport.name}</h1>
+              setActivePlayerMenuId(null);
+              setEditPlayerError("");
+            }}
+          >
+            <div className="w-full border px-4 py-2">
+              <div className="flex items-center justify-between gap-4">
+                <h1 className="text-xl font-semibold">{selectedSport.name}</h1>
 
-            <div className="flex gap-x-2">
-              <button
-                type="button"
-                onClick={() => setIsAddPlayerOpen(true)}
-                className="cursor-pointer border px-2 py-1 text-xs"
-              >
-                Add player
-              </button>
-              <button
-                type="button"
-                className="cursor-pointer border px-2 py-1 text-xs"
-              >
-                Payment
-              </button>
+                <div className="flex gap-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddPlayerOpen(true)}
+                    className="cursor-pointer border px-2 py-1 text-xs"
+                  >
+                    Add player
+                  </button>
+                  <button
+                    type="button"
+                    className="cursor-pointer border px-2 py-1 text-xs"
+                  >
+                    Payment
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 w-full border p-3">
+              {isPlayersLoading ? <p>Loading players...</p> : null}
+              {!isPlayersLoading && playersError ? <p>{playersError}</p> : null}
+              {!isPlayersLoading && !playersError && players.length === 0 ? (
+                <p>No players yet.</p>
+              ) : null}
+
+              {!isPlayersLoading && !playersError && players.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {players.map((player) => (
+                    <div
+                      key={player.id}
+                      className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold leading-tight">
+                          {player.name}
+                        </p>
+                        <p className="text-xs leading-tight">{player.skillLevel}</p>
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          className="cursor-pointer"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openPlayerMenu(player);
+                          }}
+                        >
+                          <IoEllipsisVertical />
+                        </button>
+                      </div>
+
+                      {activePlayerMenuId === player.id ? (
+                        <div
+                          className="absolute right-0 top-8 z-10 w-56 border bg-white p-3"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <form onSubmit={handleEditPlayer} className="space-y-3">
+                            <label className="block">
+                              <span className="mb-1 block text-xs">Name</span>
+                              <input
+                                type="text"
+                                value={editPlayerName}
+                                onChange={(event) =>
+                                  setEditPlayerName(event.target.value)
+                                }
+                                className="w-full border px-2 py-1 text-sm"
+                                disabled={deletingPlayerId === player.id}
+                                autoFocus
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-1 block text-xs">Skill</span>
+                              <select
+                                value={editSkillLevel}
+                                onChange={(event) =>
+                                  setEditSkillLevel(event.target.value)
+                                }
+                                className="w-full border px-2 py-1 text-sm"
+                                disabled={deletingPlayerId === player.id}
+                              >
+                                <option value="beginner">beginner</option>
+                                <option value="intermediate">intermediate</option>
+                                <option value="expert">expert</option>
+                              </select>
+                            </label>
+
+                            <label className="flex items-center gap-2 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={editPaymentStatus}
+                                onChange={(event) =>
+                                  setEditPaymentStatus(event.target.checked)
+                                }
+                                disabled={deletingPlayerId === player.id}
+                              />
+                              <span>Payment received</span>
+                            </label>
+
+                            {editPlayerError ? (
+                              <p className="text-xs">{editPlayerError}</p>
+                            ) : null}
+
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActivePlayerMenuId(null);
+                                  setEditPlayerError("");
+                                }}
+                                disabled={
+                                  isUpdatingPlayer || deletingPlayerId === player.id
+                                }
+                                className="border px-2 py-1 text-xs"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePlayer(player.id)}
+                                disabled={
+                                  isUpdatingPlayer || deletingPlayerId === player.id
+                                }
+                                className="border px-2 py-1 text-xs"
+                              >
+                                {deletingPlayerId === player.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={
+                                  isUpdatingPlayer || deletingPlayerId === player.id
+                                }
+                                className="border px-2 py-1 text-xs"
+                              >
+                                {isUpdatingPlayer ? "Saving..." : "Save"}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
-
-        <div className="mt-2 w-full border p-3">
-          {isPlayersLoading ? <p>Loading players...</p> : null}
-          {!isPlayersLoading && playersError ? <p>{playersError}</p> : null}
-          {!isPlayersLoading && !playersError && players.length === 0 ? (
-            <p>No players yet.</p>
-          ) : null}
-
-          {!isPlayersLoading && !playersError && players.length > 0 ? (
-            <div className="flex items-center justify-center flex-wrap gap-2">
-              {players.map((player) => (
-                <div
-                  key={player.id}
-                  className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1"
-                >
-                  <div>
-                    <p className="text-sm font-semibold leading-tight">
-                      {player.name}
-                    </p>
-                    <p className="text-xs leading-tight">{player.skillLevel}</p>
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      className="cursor-pointer"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openPlayerMenu(player);
-                      }}
-                    >
-                      <IoEllipsisVertical />
-                    </button>
-                  </div>
-
-                  {activePlayerMenuId === player.id ? (
-                    <div
-                      className="absolute right-0 top-8 z-10 w-56 border bg-white p-3"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <form onSubmit={handleEditPlayer} className="space-y-3">
-                        <label className="block">
-                          <span className="mb-1 block text-xs">Name</span>
-                          <input
-                            type="text"
-                            value={editPlayerName}
-                            onChange={(event) => setEditPlayerName(event.target.value)}
-                            className="w-full border px-2 py-1 text-sm"
-                            disabled={deletingPlayerId === player.id}
-                            autoFocus
-                          />
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-1 block text-xs">Skill</span>
-                          <select
-                            value={editSkillLevel}
-                            onChange={(event) => setEditSkillLevel(event.target.value)}
-                            className="w-full border px-2 py-1 text-sm"
-                            disabled={deletingPlayerId === player.id}
-                          >
-                            <option value="beginner">beginner</option>
-                            <option value="intermediate">intermediate</option>
-                            <option value="expert">expert</option>
-                          </select>
-                        </label>
-
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={editPaymentStatus}
-                            onChange={(event) =>
-                              setEditPaymentStatus(event.target.checked)
-                            }
-                            disabled={deletingPlayerId === player.id}
-                          />
-                          <span>Payment received</span>
-                        </label>
-
-                        {editPlayerError ? (
-                          <p className="text-xs">{editPlayerError}</p>
-                        ) : null}
-
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActivePlayerMenuId(null);
-                              setEditPlayerError("");
-                            }}
-                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
-                            className="border px-2 py-1 text-xs"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePlayer(player.id)}
-                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
-                            className="border px-2 py-1 text-xs"
-                          >
-                            {deletingPlayerId === player.id ? "Deleting..." : "Delete"}
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={isUpdatingPlayer || deletingPlayerId === player.id}
-                            className="border px-2 py-1 text-xs"
-                          >
-                            {isUpdatingPlayer ? "Saving..." : "Save"}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+        <div className="border p-4 w-full h-full">
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <h2 className="text-sm font-semibold">Courts</h2>
+              <button
+                type="button"
+                onClick={handleAddCourt}
+                disabled={isCourtSubmitting}
+                className="cursor-pointer border px-2 py-1 text-xs"
+              >
+                {isCourtSubmitting ? "Adding..." : "Add court"}
+              </button>
             </div>
-          ) : null}
-        </div>
+
+            <p className="mb-3 text-xs">{courts.length} total</p>
+
+            {isCourtsLoading ? <p>Loading courts...</p> : null}
+            {!isCourtsLoading && courtsError ? <p>{courtsError}</p> : null}
+            {!isCourtsLoading && !courtsError && courts.length === 0 ? (
+              <p>No courts yet.</p>
+            ) : null}
+
+            {!isCourtsLoading && !courtsError && courts.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {courts.map((court) => (
+                  <div key={court.id} className="rounded border px-3 py-2">
+                    <p className="text-sm font-semibold leading-tight">
+                      {court.name}
+                    </p>
+                    <p className="text-xs leading-tight">
+                      {court.isActive ? "Active" : "Inactive"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
       </section>
 
       {isAddPlayerOpen ? (
