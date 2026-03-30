@@ -6,6 +6,7 @@ router.post("/sport/:sportId/add", CourtController.postCourt);
 router.get("/sport/:sportId", CourtController.getCourts);
 router.patch("/:courtId/sport/:sportId/start", CourtController.startCourt);
 router.patch("/:courtId/sport/:sportId/reset", CourtController.resetCourt);
+router.patch("/:courtId/sport/:sportId/end", CourtController.endCourt);
 router.patch("/:courtId/sport/:sportId/teams", CourtController.patchCourtTeams);
 router.patch("/:courtId/sport/:sportId", CourtController.patchCourt);
 router.delete("/:courtId/sport/:sportId", CourtController.deleteCourt);

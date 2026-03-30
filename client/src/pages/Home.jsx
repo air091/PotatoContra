@@ -20,6 +20,7 @@ const Home = () => {
   const [deletingCourtId, setDeletingCourtId] = useState(null);
   const [startingCourtId, setStartingCourtId] = useState(null);
   const [resettingCourtId, setResettingCourtId] = useState(null);
+  const [endingCourtId, setEndingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
   const [activeCourtMenuId, setActiveCourtMenuId] = useState(null);
@@ -134,6 +135,7 @@ const Home = () => {
     setDeletingCourtId(null);
     setStartingCourtId(null);
     setResettingCourtId(null);
+    setEndingCourtId(null);
     setEditPlayerError("");
     setEditCourtError("");
     getPlayersAPI();
@@ -562,6 +564,47 @@ const Home = () => {
     }
   };
 
+  const handleEndCourt = async (courtId) => {
+    try {
+      setEndingCourtId(courtId);
+      setCourtsError("");
+      setEditCourtError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/end`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "End court failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === courtId
+            ? { ...court, ...data.court, currentMatch: null }
+            : court,
+        ),
+      );
+
+      if (activeCourtMenuId === courtId) {
+        setActiveCourtMenuId(null);
+        setEditCourtName("");
+        setEditCourtTeamAPlayerIds([]);
+        setEditCourtTeamBPlayerIds([]);
+      }
+    } catch (endCourtError) {
+      console.error("End court failed", endCourtError);
+      setCourtsError(endCourtError.message ?? "Unable to end court.");
+    } finally {
+      setEndingCourtId(null);
+    }
+  };
+
   if (isLoading) return <div>Loading sports...</div>;
   if (error) return <div>{error}</div>;
   if (sports.length === 0) return <div>No sports available yet.</div>;
@@ -601,6 +644,7 @@ const Home = () => {
             deletingCourtId={deletingCourtId}
             startingCourtId={startingCourtId}
             resettingCourtId={resettingCourtId}
+            endingCourtId={endingCourtId}
             setActiveCourtMenuId={setActiveCourtMenuId}
             setEditCourtName={setEditCourtName}
             setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
@@ -621,6 +665,7 @@ const Home = () => {
             handleEditCourt={handleEditCourt}
             handleStartCourt={handleStartCourt}
             handleResetCourt={handleResetCourt}
+            handleEndCourt={handleEndCourt}
             isPlayersLoading={isPlayersLoading}
           />
         

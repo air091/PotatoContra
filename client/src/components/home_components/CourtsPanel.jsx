@@ -8,6 +8,7 @@ const CourtsPanel = ({
   deletingCourtId,
   startingCourtId,
   resettingCourtId,
+  endingCourtId,
   setActiveCourtMenuId,
   setEditCourtName,
   setEditCourtTeamAPlayerIds,
@@ -28,6 +29,7 @@ const CourtsPanel = ({
   handleEditCourt,
   handleStartCourt,
   handleResetCourt,
+  handleEndCourt,
   isPlayersLoading,
 }) => {
   return (
@@ -38,7 +40,8 @@ const CourtsPanel = ({
           isUpdatingCourt ||
           deletingCourtId ||
           startingCourtId ||
-          resettingCourtId
+          resettingCourtId ||
+          endingCourtId
         )
           return;
 
@@ -88,6 +91,8 @@ const CourtsPanel = ({
                   !currentMatch.startedAt &&
                   teamAPlayers.length === 1 &&
                   teamBPlayers.length === 1;
+                const canReset = !!currentMatch && !currentMatch.startedAt;
+                const canEnd = !!currentMatch && !!currentMatch.startedAt;
 
                 return (
                   <>
@@ -163,7 +168,8 @@ const CourtsPanel = ({
                         isUpdatingCourt ||
                         deletingCourtId === court.id ||
                         startingCourtId === court.id ||
-                        resettingCourtId === court.id
+                        resettingCourtId === court.id ||
+                        endingCourtId === court.id
                       }
                       className="border px-2 py-1 text-xs"
                     >
@@ -171,22 +177,45 @@ const CourtsPanel = ({
                     </button>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleResetCourt(court.id);
-                    }}
-                    disabled={
-                      isUpdatingCourt ||
-                      deletingCourtId === court.id ||
-                      startingCourtId === court.id ||
-                      resettingCourtId === court.id
-                    }
-                    className="border px-2 py-1 text-xs"
-                  >
-                    {resettingCourtId === court.id ? "Resetting..." : "Reset"}
-                  </button>
+                  {canReset ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleResetCourt(court.id);
+                      }}
+                      disabled={
+                        isUpdatingCourt ||
+                        deletingCourtId === court.id ||
+                        startingCourtId === court.id ||
+                        resettingCourtId === court.id ||
+                        endingCourtId === court.id
+                      }
+                      className="border px-2 py-1 text-xs"
+                    >
+                      {resettingCourtId === court.id ? "Resetting..." : "Reset"}
+                    </button>
+                  ) : null}
+
+                  {canEnd ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleEndCourt(court.id);
+                      }}
+                      disabled={
+                        isUpdatingCourt ||
+                        deletingCourtId === court.id ||
+                        startingCourtId === court.id ||
+                        resettingCourtId === court.id ||
+                        endingCourtId === court.id
+                      }
+                      className="border px-2 py-1 text-xs"
+                    >
+                      {endingCourtId === court.id ? "Ending..." : "End"}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -209,6 +238,7 @@ const CourtsPanel = ({
                           deletingCourtId === court.id ||
                           startingCourtId === court.id ||
                           resettingCourtId === court.id ||
+                          endingCourtId === court.id ||
                           isUpdatingCourt
                         }
                         autoFocus
@@ -244,6 +274,7 @@ const CourtsPanel = ({
                                     deletingCourtId === court.id ||
                                     startingCourtId === court.id ||
                                     resettingCourtId === court.id ||
+                                    endingCourtId === court.id ||
                                     isPlayersLoading
                                   }
                                 />
@@ -293,6 +324,7 @@ const CourtsPanel = ({
                                     deletingCourtId === court.id ||
                                     startingCourtId === court.id ||
                                     resettingCourtId === court.id ||
+                                    endingCourtId === court.id ||
                                     isPlayersLoading
                                   }
                                 />
@@ -333,7 +365,8 @@ const CourtsPanel = ({
                           isUpdatingCourt ||
                           deletingCourtId === court.id ||
                           startingCourtId === court.id ||
-                          resettingCourtId === court.id
+                          resettingCourtId === court.id ||
+                          endingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
@@ -346,7 +379,8 @@ const CourtsPanel = ({
                           isUpdatingCourt ||
                           deletingCourtId === court.id ||
                           startingCourtId === court.id ||
-                          resettingCourtId === court.id
+                          resettingCourtId === court.id ||
+                          endingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
@@ -361,6 +395,7 @@ const CourtsPanel = ({
                           deletingCourtId === court.id ||
                           startingCourtId === court.id ||
                           resettingCourtId === court.id ||
+                          endingCourtId === court.id ||
                           isPlayersLoading ||
                           players.length === 0
                         }

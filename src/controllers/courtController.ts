@@ -198,6 +198,12 @@ class CourtController {
           message: "No active match found for this court",
         });
 
+      if (activeMatch.startedAt)
+        return response.status(409).json({
+          success: false,
+          message: "This court session has already started and must be ended",
+        });
+
       const match = await prisma.match.update({
         where: { id: activeMatch.id },
         data: {
@@ -227,6 +233,95 @@ class CourtController {
       return response.status(500).json({
         success: false,
         message: "Reset court failed",
+        error_message: error.message,
+      });
+    }
+  };
+
+  static endCourt = async (request: Request, response: Response) => {
+    try {
+      const { sportId, courtId } = request.params;
+
+      const [sportExist, courtExist] = await Promise.all([
+        prisma.sport.findFirst({
+          where: { id: sportId as string },
+        }),
+        prisma.court.findFirst({
+          where: { id: courtId as string, sportId: sportId as string },
+        }),
+      ]);
+
+      if (!sportExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
+
+      if (!courtExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Court not found" });
+
+      const activeMatch = await prisma.match.findFirst({
+        where: {
+          sportId: sportId as string,
+          courtId: courtId as string,
+          endedAt: null,
+        },
+        include: {
+          teamA: true,
+          teamB: true,
+          court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
+        },
+        orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
+      });
+
+      if (!activeMatch)
+        return response.status(404).json({
+          success: false,
+          message: "No active match found for this court",
+        });
+
+      if (!activeMatch.startedAt)
+        return response.status(409).json({
+          success: false,
+          message: "This court session has not started yet",
+        });
+
+      const match = await prisma.match.update({
+        where: { id: activeMatch.id },
+        data: {
+          endedAt: new Date(),
+          winnerTeam: null,
+        },
+        include: {
+          teamA: true,
+          teamB: true,
+          court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
+        },
+      });
+
+      return response.status(200).json({
+        success: true,
+        court: courtExist,
+        match,
+      });
+    } catch (error: any) {
+      console.error(`End court failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "End court failed",
         error_message: error.message,
       });
     }
