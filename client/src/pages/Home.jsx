@@ -15,6 +15,7 @@ const Home = () => {
   const [playerName, setPlayerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
+  const [deletingCourtId, setDeletingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
   const [editPlayerName, setEditPlayerName] = useState("");
@@ -334,6 +335,35 @@ const Home = () => {
     }
   };
 
+  const handleDeleteCourt = async (courtId) => {
+    try {
+      setDeletingCourtId(courtId);
+      setCourtsError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok && response.status !== 204) {
+        const data = await response.json();
+        throw new Error(data?.message ?? "Delete court failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.filter((court) => court.id !== courtId),
+      );
+    } catch (deleteCourtError) {
+      console.error("Delete court failed", deleteCourtError);
+      setCourtsError(deleteCourtError.message ?? "Unable to delete court.");
+    } finally {
+      setDeletingCourtId(null);
+    }
+  };
+
   if (isLoading) return <div>Loading sports...</div>;
   if (error) return <div>{error}</div>;
   if (sports.length === 0) return <div>No sports available yet.</div>;
@@ -341,8 +371,8 @@ const Home = () => {
 
   return (
     <>
-      <section className="p-4 border-2 border-red-500 flex justify-between">
-        <div className="flex max-w-xl flex-col gap-4">
+      <section className="p-4 border">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-start">
           <div
             className="min-w-0 flex-1 border p-4"
             onClick={() => {
@@ -504,43 +534,71 @@ const Home = () => {
               ) : null}
             </div>
           </div>
-        </div>
-        <div className="border p-4 w-full h-full">
+          <aside className="w-full border p-4 lg:w-80">
             <div className="mb-3 flex items-center justify-between gap-4">
               <h2 className="text-sm font-semibold">Courts</h2>
-              <button
-                type="button"
-                onClick={handleAddCourt}
-                disabled={isCourtSubmitting}
-                className="cursor-pointer border px-2 py-1 text-xs"
-              >
-                {isCourtSubmitting ? "Adding..." : "Add court"}
-              </button>
             </div>
 
             <p className="mb-3 text-xs">{courts.length} total</p>
 
             {isCourtsLoading ? <p>Loading courts...</p> : null}
             {!isCourtsLoading && courtsError ? <p>{courtsError}</p> : null}
-            {!isCourtsLoading && !courtsError && courts.length === 0 ? (
-              <p>No courts yet.</p>
-            ) : null}
 
-            {!isCourtsLoading && !courtsError && courts.length > 0 ? (
-              <div className="flex flex-col gap-2">
+            {!isCourtsLoading && !courtsError ? (
+              <div className="flex flex-wrap gap-2">
+                {courts.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleAddCourt}
+                    disabled={isCourtSubmitting}
+                    className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
+                  >
+                    {isCourtSubmitting ? "Adding..." : "Add court"}
+                  </button>
+                ) : null}
+
                 {courts.map((court) => (
-                  <div key={court.id} className="rounded border px-3 py-2">
-                    <p className="text-sm font-semibold leading-tight">
-                      {court.name}
-                    </p>
-                    <p className="text-xs leading-tight">
-                      {court.isActive ? "Active" : "Inactive"}
-                    </p>
+                  <div
+                    key={court.id}
+                    className="flex items-start justify-between gap-3 rounded border px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold leading-tight">
+                        {court.name}
+                      </p>
+                      <p className="text-xs leading-tight">
+                        {court.isActive ? "Active" : "Inactive"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCourt(court.id)}
+                      disabled={deletingCourtId === court.id}
+                      className="cursor-pointer border px-2 py-1 text-xs"
+                    >
+                      {deletingCourtId === court.id ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                 ))}
+
+                {courts.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleAddCourt}
+                    disabled={isCourtSubmitting}
+                    className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
+                  >
+                    {isCourtSubmitting ? "Adding..." : "Add court"}
+                  </button>
+                ) : null}
               </div>
             ) : null}
-          </div>
+
+            {!isCourtsLoading && !courtsError && courts.length === 0 ? (
+              <p className="mt-3 text-sm">No courts yet.</p>
+            ) : null}
+          </aside>
+        </div>
       </section>
 
       {isAddPlayerOpen ? (

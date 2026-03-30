@@ -111,6 +111,12 @@ class CourtController {
 
       return response.status(204).json({});
     } catch (error: any) {
+      if (error?.code === "P2003")
+        return response.status(409).json({
+          success: false,
+          message: "Court is being used by a match and cannot be deleted",
+        });
+
       console.error(`Delete court failed ${error}`);
       return response.status(500).json({
         success: false,
