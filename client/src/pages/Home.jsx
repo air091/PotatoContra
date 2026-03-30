@@ -15,15 +15,19 @@ const Home = () => {
   const [playerName, setPlayerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
+  const [isUpdatingCourt, setIsUpdatingCourt] = useState(false);
   const [deletingCourtId, setDeletingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
+  const [activeCourtMenuId, setActiveCourtMenuId] = useState(null);
+  const [editCourtName, setEditCourtName] = useState("");
   const [editPlayerName, setEditPlayerName] = useState("");
   const [editSkillLevel, setEditSkillLevel] = useState("beginner");
   const [editPaymentStatus, setEditPaymentStatus] = useState(false);
   const [isUpdatingPlayer, setIsUpdatingPlayer] = useState(false);
   const [deletingPlayerId, setDeletingPlayerId] = useState(null);
   const [editPlayerError, setEditPlayerError] = useState("");
+  const [editCourtError, setEditCourtError] = useState("");
 
   useEffect(() => {
     if (!selectedSport) {
@@ -114,11 +118,15 @@ const Home = () => {
     setPlayerName("");
     setSubmitError("");
     setActivePlayerMenuId(null);
+    setActiveCourtMenuId(null);
+    setEditCourtName("");
     setEditPlayerName("");
     setEditSkillLevel("beginner");
     setEditPaymentStatus(false);
     setDeletingPlayerId(null);
+    setDeletingCourtId(null);
     setEditPlayerError("");
+    setEditCourtError("");
     getPlayersAPI();
     getCourtsAPI();
 
@@ -143,6 +151,14 @@ const Home = () => {
     setEditSkillLevel(player.skillLevel);
     setEditPaymentStatus(player.paymentStatus);
     setEditPlayerError("");
+  };
+
+  const openCourtMenu = (court) => {
+    setActiveCourtMenuId((currentMenuId) =>
+      currentMenuId === court.id ? null : court.id,
+    );
+    setEditCourtName(court.name);
+    setEditCourtError("");
   };
 
   const handleAddPlayer = async (event) => {
@@ -339,6 +355,7 @@ const Home = () => {
     try {
       setDeletingCourtId(courtId);
       setCourtsError("");
+      setEditCourtError("");
 
       const response = await fetch(
         `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}`,
@@ -356,11 +373,58 @@ const Home = () => {
       setCourts((currentCourts) =>
         currentCourts.filter((court) => court.id !== courtId),
       );
+      setActiveCourtMenuId(null);
+      setEditCourtName("");
     } catch (deleteCourtError) {
       console.error("Delete court failed", deleteCourtError);
-      setCourtsError(deleteCourtError.message ?? "Unable to delete court.");
+      setEditCourtError(deleteCourtError.message ?? "Unable to delete court.");
     } finally {
       setDeletingCourtId(null);
+    }
+  };
+
+  const handleEditCourt = async (event) => {
+    event.preventDefault();
+
+    const trimmedCourtName = editCourtName.trim();
+    if (!trimmedCourtName) {
+      setEditCourtError("Court name is required.");
+      return;
+    }
+
+    try {
+      setIsUpdatingCourt(true);
+      setEditCourtError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ name: trimmedCourtName }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Update court failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === activeCourtMenuId ? data.court : court,
+        ),
+      );
+      setActiveCourtMenuId(null);
+      setEditCourtName("");
+    } catch (updateCourtError) {
+      console.error("Update court failed", updateCourtError);
+      setEditCourtError(updateCourtError.message ?? "Unable to update court.");
+    } finally {
+      setIsUpdatingCourt(false);
     }
   };
 
@@ -534,7 +598,15 @@ const Home = () => {
               ) : null}
             </div>
           </div>
-          <aside className="w-full border p-4 lg:w-80">
+          <aside
+            className="w-full border p-4 lg:w-80"
+            onClick={() => {
+              if (isUpdatingCourt || deletingCourtId) return;
+
+              setActiveCourtMenuId(null);
+              setEditCourtError("");
+            }}
+          >
             <div className="mb-3 flex items-center justify-between gap-4">
               <h2 className="text-sm font-semibold">Courts</h2>
             </div>
@@ -560,7 +632,7 @@ const Home = () => {
                 {courts.map((court) => (
                   <div
                     key={court.id}
-                    className="flex items-start justify-between gap-3 rounded border px-3 py-2"
+                    className="relative flex items-start justify-between gap-3 rounded border px-3 py-2"
                   >
                     <div>
                       <p className="text-sm font-semibold leading-tight">
@@ -572,12 +644,78 @@ const Home = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleDeleteCourt(court.id)}
-                      disabled={deletingCourtId === court.id}
-                      className="cursor-pointer border px-2 py-1 text-xs"
+                      className="cursor-pointer"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openCourtMenu(court);
+                      }}
                     >
-                      {deletingCourtId === court.id ? "Deleting..." : "Delete"}
+                      <IoEllipsisVertical />
                     </button>
+
+                    {activeCourtMenuId === court.id ? (
+                      <div
+                        className="absolute right-0 top-8 z-10 w-56 border bg-white p-3"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <form onSubmit={handleEditCourt} className="space-y-3">
+                          <label className="block">
+                            <span className="mb-1 block text-xs">Name</span>
+                            <input
+                              type="text"
+                              value={editCourtName}
+                              onChange={(event) =>
+                                setEditCourtName(event.target.value)
+                              }
+                              className="w-full border px-2 py-1 text-sm"
+                              disabled={deletingCourtId === court.id}
+                              autoFocus
+                            />
+                          </label>
+
+                          {editCourtError ? (
+                            <p className="text-xs">{editCourtError}</p>
+                          ) : null}
+
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveCourtMenuId(null);
+                                setEditCourtError("");
+                              }}
+                              disabled={
+                                isUpdatingCourt || deletingCourtId === court.id
+                              }
+                              className="border px-2 py-1 text-xs"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCourt(court.id)}
+                              disabled={
+                                isUpdatingCourt || deletingCourtId === court.id
+                              }
+                              className="border px-2 py-1 text-xs"
+                            >
+                              {deletingCourtId === court.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={
+                                isUpdatingCourt || deletingCourtId === court.id
+                              }
+                              className="border px-2 py-1 text-xs"
+                            >
+                              {isUpdatingCourt ? "Saving..." : "Save"}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
 
