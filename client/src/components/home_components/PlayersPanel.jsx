@@ -24,7 +24,7 @@ const PlayersPanel = ({
 }) => {
   return (
     <div
-      className="min-w-0 flex-1 border p-4"
+      className="border p-4 w-full max-w-lg"
       onClick={() => {
         if (isUpdatingPlayer || deletingPlayerId) return;
 

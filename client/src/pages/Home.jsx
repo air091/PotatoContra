@@ -533,8 +533,8 @@ const Home = () => {
 
   return (
     <>
-      <section className="border p-4">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-start">
+      <section className="border p-4 flex">
+        
           <PlayersPanel
             selectedSport={selectedSport}
             players={players}
@@ -585,7 +585,7 @@ const Home = () => {
             handleEditCourt={handleEditCourt}
             isPlayersLoading={isPlayersLoading}
           />
-        </div>
+        
       </section>
 
       {isAddPlayerOpen ? (

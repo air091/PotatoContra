@@ -29,8 +29,8 @@ const CourtsPanel = ({
   isPlayersLoading,
 }) => {
   return (
-    <aside
-      className="w-full border p-4 lg:w-80"
+    <div
+      className="w-full border p-4"
       onClick={() => {
         if (isUpdatingCourt || deletingCourtId || isSavingCourtTeams) return;
 
@@ -86,7 +86,7 @@ const CourtsPanel = ({
                 </button>
               </div>
 
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-2 flex gap-x-4">
                 <div>
                   <p className="text-xs font-semibold">Team A</p>
                   {court.currentMatch?.matchPlayers?.filter(
@@ -298,7 +298,7 @@ const CourtsPanel = ({
       {!isCourtsLoading && !courtsError && courts.length === 0 ? (
         <p className="mt-3 text-sm">No courts yet.</p>
       ) : null}
-    </aside>
+    </div>
   );
 };
 
