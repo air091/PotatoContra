@@ -18,6 +18,8 @@ const Home = () => {
   const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
   const [isUpdatingCourt, setIsUpdatingCourt] = useState(false);
   const [deletingCourtId, setDeletingCourtId] = useState(null);
+  const [startingCourtId, setStartingCourtId] = useState(null);
+  const [resettingCourtId, setResettingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
   const [activeCourtMenuId, setActiveCourtMenuId] = useState(null);
@@ -130,6 +132,8 @@ const Home = () => {
     setEditPaymentStatus(false);
     setDeletingPlayerId(null);
     setDeletingCourtId(null);
+    setStartingCourtId(null);
+    setResettingCourtId(null);
     setEditPlayerError("");
     setEditCourtError("");
     getPlayersAPI();
@@ -483,6 +487,81 @@ const Home = () => {
     }
   };
 
+  const handleStartCourt = async (courtId) => {
+    try {
+      setStartingCourtId(courtId);
+      setCourtsError("");
+      setEditCourtError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/start`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Start court failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === courtId
+            ? { ...court, ...data.court, currentMatch: data.match }
+            : court,
+        ),
+      );
+    } catch (startCourtError) {
+      console.error("Start court failed", startCourtError);
+      setCourtsError(startCourtError.message ?? "Unable to start court.");
+    } finally {
+      setStartingCourtId(null);
+    }
+  };
+
+  const handleResetCourt = async (courtId) => {
+    try {
+      setResettingCourtId(courtId);
+      setCourtsError("");
+      setEditCourtError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/reset`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Reset court failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === courtId
+            ? { ...court, ...data.court, currentMatch: null }
+            : court,
+        ),
+      );
+
+      if (activeCourtMenuId === courtId) {
+        setActiveCourtMenuId(null);
+        setEditCourtName("");
+        setEditCourtTeamAPlayerIds([]);
+        setEditCourtTeamBPlayerIds([]);
+      }
+    } catch (resetCourtError) {
+      console.error("Reset court failed", resetCourtError);
+      setCourtsError(resetCourtError.message ?? "Unable to reset court.");
+    } finally {
+      setResettingCourtId(null);
+    }
+  };
+
   if (isLoading) return <div>Loading sports...</div>;
   if (error) return <div>{error}</div>;
   if (sports.length === 0) return <div>No sports available yet.</div>;
@@ -520,6 +599,8 @@ const Home = () => {
             courtsError={courtsError}
             isUpdatingCourt={isUpdatingCourt}
             deletingCourtId={deletingCourtId}
+            startingCourtId={startingCourtId}
+            resettingCourtId={resettingCourtId}
             setActiveCourtMenuId={setActiveCourtMenuId}
             setEditCourtName={setEditCourtName}
             setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
@@ -538,6 +619,8 @@ const Home = () => {
             editCourtError={editCourtError}
             handleDeleteCourt={handleDeleteCourt}
             handleEditCourt={handleEditCourt}
+            handleStartCourt={handleStartCourt}
+            handleResetCourt={handleResetCourt}
             isPlayersLoading={isPlayersLoading}
           />
         

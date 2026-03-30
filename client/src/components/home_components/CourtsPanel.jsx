@@ -6,6 +6,8 @@ const CourtsPanel = ({
   courtsError,
   isUpdatingCourt,
   deletingCourtId,
+  startingCourtId,
+  resettingCourtId,
   setActiveCourtMenuId,
   setEditCourtName,
   setEditCourtTeamAPlayerIds,
@@ -24,13 +26,21 @@ const CourtsPanel = ({
   editCourtError,
   handleDeleteCourt,
   handleEditCourt,
+  handleStartCourt,
+  handleResetCourt,
   isPlayersLoading,
 }) => {
   return (
     <div
       className="w-full border p-4"
       onClick={() => {
-        if (isUpdatingCourt || deletingCourtId) return;
+        if (
+          isUpdatingCourt ||
+          deletingCourtId ||
+          startingCourtId ||
+          resettingCourtId
+        )
+          return;
 
         setActiveCourtMenuId(null);
         setEditCourtName("");
@@ -63,6 +73,24 @@ const CourtsPanel = ({
 
           {courts.map((court) => (
             <div key={court.id} className="relative rounded border px-3 py-2">
+              {(() => {
+                const currentMatch = court.currentMatch;
+                const teamAPlayers =
+                  currentMatch?.matchPlayers?.filter(
+                    (matchPlayer) => matchPlayer.teamId === currentMatch?.teamAId,
+                  ) ?? [];
+                const teamBPlayers =
+                  currentMatch?.matchPlayers?.filter(
+                    (matchPlayer) => matchPlayer.teamId === currentMatch?.teamBId,
+                  ) ?? [];
+                const canStart =
+                  !!currentMatch &&
+                  !currentMatch.startedAt &&
+                  teamAPlayers.length === 1 &&
+                  teamBPlayers.length === 1;
+
+                return (
+                  <>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold leading-tight">
@@ -87,24 +115,16 @@ const CourtsPanel = ({
               <div className="mt-3 space-y-2 flex gap-x-4">
                 <div>
                   <p className="text-xs font-semibold">Team A</p>
-                  {court.currentMatch?.matchPlayers?.filter(
-                    (matchPlayer) =>
-                      matchPlayer.teamId === court.currentMatch?.teamAId,
-                  ).length ? (
+                  {teamAPlayers.length ? (
                     <div className="mt-1 grid grid-cols-2 gap-1">
-                      {court.currentMatch.matchPlayers
-                        .filter(
-                          (matchPlayer) =>
-                            matchPlayer.teamId === court.currentMatch?.teamAId,
-                        )
-                        .map((matchPlayer) => (
-                          <span
-                            key={`${court.id}-team-a-${matchPlayer.playerId}`}
-                            className="rounded border px-2 py-0.5 text-xs"
-                          >
-                            {matchPlayer.player.name}
-                          </span>
-                        ))}
+                      {teamAPlayers.map((matchPlayer) => (
+                        <span
+                          key={`${court.id}-team-a-${matchPlayer.playerId}`}
+                          className="rounded border px-2 py-0.5 text-xs"
+                        >
+                          {matchPlayer.player.name}
+                        </span>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-xs">No players yet.</p>
@@ -113,30 +133,62 @@ const CourtsPanel = ({
 
                 <div>
                   <p className="text-xs font-semibold">Team B</p>
-                  {court.currentMatch?.matchPlayers?.filter(
-                    (matchPlayer) =>
-                      matchPlayer.teamId === court.currentMatch?.teamBId,
-                  ).length ? (
+                  {teamBPlayers.length ? (
                     <div className="mt-1 grid grid-cols-2 gap-1">
-                      {court.currentMatch.matchPlayers
-                        .filter(
-                          (matchPlayer) =>
-                            matchPlayer.teamId === court.currentMatch?.teamBId,
-                        )
-                        .map((matchPlayer) => (
-                          <span
-                            key={`${court.id}-team-b-${matchPlayer.playerId}`}
-                            className="rounded border px-2 py-0.5 text-xs"
-                          >
-                            {matchPlayer.player.name}
-                          </span>
-                        ))}
+                      {teamBPlayers.map((matchPlayer) => (
+                        <span
+                          key={`${court.id}-team-b-${matchPlayer.playerId}`}
+                          className="rounded border px-2 py-0.5 text-xs"
+                        >
+                          {matchPlayer.player.name}
+                        </span>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-xs">No players yet.</p>
                   )}
                 </div>
               </div>
+
+              {currentMatch ? (
+                <div className="mt-3 flex gap-2">
+                  {canStart ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleStartCourt(court.id);
+                      }}
+                      disabled={
+                        isUpdatingCourt ||
+                        deletingCourtId === court.id ||
+                        startingCourtId === court.id ||
+                        resettingCourtId === court.id
+                      }
+                      className="border px-2 py-1 text-xs"
+                    >
+                      {startingCourtId === court.id ? "Starting..." : "Start"}
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleResetCourt(court.id);
+                    }}
+                    disabled={
+                      isUpdatingCourt ||
+                      deletingCourtId === court.id ||
+                      startingCourtId === court.id ||
+                      resettingCourtId === court.id
+                    }
+                    className="border px-2 py-1 text-xs"
+                  >
+                    {resettingCourtId === court.id ? "Resetting..." : "Reset"}
+                  </button>
+                </div>
+              ) : null}
 
               {activeCourtMenuId === court.id ? (
                 <div
@@ -153,12 +205,17 @@ const CourtsPanel = ({
                           setEditCourtNameProp(event.target.value)
                         }
                         className="w-full border px-2 py-1 text-sm"
-                        disabled={deletingCourtId === court.id || isUpdatingCourt}
+                        disabled={
+                          deletingCourtId === court.id ||
+                          startingCourtId === court.id ||
+                          resettingCourtId === court.id ||
+                          isUpdatingCourt
+                        }
                         autoFocus
                       />
                     </label>
 
-                    <div className="grid grid-cols-2 gap-3 border-2 border-red-500">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <p className="mb-2 text-xs font-semibold">Team A</p>
                         <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
@@ -176,11 +233,17 @@ const CourtsPanel = ({
                               <span className="flex items-center gap-2">
                                 <input
                                   type="checkbox"
-                                  checked={editCourtTeamAPlayerIds.includes(player.id)}
-                                  onChange={() => toggleCourtPlayer("A", player.id)}
+                                  checked={editCourtTeamAPlayerIds.includes(
+                                    player.id,
+                                  )}
+                                  onChange={() =>
+                                    toggleCourtPlayer("A", player.id)
+                                  }
                                   disabled={
                                     isUpdatingCourt ||
                                     deletingCourtId === court.id ||
+                                    startingCourtId === court.id ||
+                                    resettingCourtId === court.id ||
                                     isPlayersLoading
                                   }
                                 />
@@ -219,11 +282,17 @@ const CourtsPanel = ({
                               <span className="flex items-center gap-2">
                                 <input
                                   type="checkbox"
-                                  checked={editCourtTeamBPlayerIds.includes(player.id)}
-                                  onChange={() => toggleCourtPlayer("B", player.id)}
+                                  checked={editCourtTeamBPlayerIds.includes(
+                                    player.id,
+                                  )}
+                                  onChange={() =>
+                                    toggleCourtPlayer("B", player.id)
+                                  }
                                   disabled={
                                     isUpdatingCourt ||
                                     deletingCourtId === court.id ||
+                                    startingCourtId === court.id ||
+                                    resettingCourtId === court.id ||
                                     isPlayersLoading
                                   }
                                 />
@@ -262,7 +331,9 @@ const CourtsPanel = ({
                         }}
                         disabled={
                           isUpdatingCourt ||
-                          deletingCourtId === court.id
+                          deletingCourtId === court.id ||
+                          startingCourtId === court.id ||
+                          resettingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
@@ -273,17 +344,23 @@ const CourtsPanel = ({
                         onClick={() => handleDeleteCourt(court.id)}
                         disabled={
                           isUpdatingCourt ||
-                          deletingCourtId === court.id
+                          deletingCourtId === court.id ||
+                          startingCourtId === court.id ||
+                          resettingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
-                        {deletingCourtId === court.id ? "Deleting..." : "Delete"}
+                        {deletingCourtId === court.id
+                          ? "Deleting..."
+                          : "Delete"}
                       </button>
                       <button
                         type="submit"
                         disabled={
                           isUpdatingCourt ||
                           deletingCourtId === court.id ||
+                          startingCourtId === court.id ||
+                          resettingCourtId === court.id ||
                           isPlayersLoading ||
                           players.length === 0
                         }
@@ -295,6 +372,9 @@ const CourtsPanel = ({
                   </form>
                 </div>
               ) : null}
+                  </>
+                );
+              })()}
             </div>
           ))}
 
