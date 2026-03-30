@@ -389,10 +389,10 @@ class CourtController {
         (matchPlayer) => matchPlayer.teamId === activeMatch.teamBId,
       ).length;
 
-      if (teamAPlayerCount !== 1 || teamBPlayerCount !== 1)
+      if (teamAPlayerCount === 0 || teamBPlayerCount === 0)
         return response.status(400).json({
           success: false,
-          message: "Start requires exactly 1 player on Team A and 1 player on Team B",
+          message: "Start requires at least 1 player on Team A and 1 player on Team B",
         });
 
       const match = await prisma.match.update({

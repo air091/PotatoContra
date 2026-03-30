@@ -1,4 +1,23 @@
+import { useEffect, useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
+
+const formatElapsedTime = (startedAt, now) => {
+  if (!startedAt) return null;
+
+  const startedAtDate = new Date(startedAt);
+  const startedAtTimestamp = startedAtDate.getTime();
+
+  if (Number.isNaN(startedAtTimestamp)) return null;
+
+  const totalSeconds = Math.max(
+    0,
+    Math.floor((now - startedAtTimestamp) / 1000),
+  );
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
 
 const CourtsPanel = ({
   courts,
@@ -32,6 +51,22 @@ const CourtsPanel = ({
   handleEndCourt,
   isPlayersLoading,
 }) => {
+  const [timerNow, setTimerNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const hasStartedMatch = courts.some((court) => !!court.currentMatch?.startedAt);
+
+    if (!hasStartedMatch) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setTimerNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [courts]);
+
   return (
     <div
       className="w-full border p-4"
@@ -89,10 +124,14 @@ const CourtsPanel = ({
                 const canStart =
                   !!currentMatch &&
                   !currentMatch.startedAt &&
-                  teamAPlayers.length === 1 &&
-                  teamBPlayers.length === 1;
+                  teamAPlayers.length > 0 &&
+                  teamBPlayers.length > 0;
                 const canReset = !!currentMatch && !currentMatch.startedAt;
                 const canEnd = !!currentMatch && !!currentMatch.startedAt;
+                const elapsedTime = formatElapsedTime(
+                  currentMatch?.startedAt,
+                  timerNow,
+                );
 
                 return (
                   <>
@@ -104,6 +143,9 @@ const CourtsPanel = ({
                   <p className="text-xs leading-tight">
                     {court.isActive ? "Active" : "Inactive"}
                   </p>
+                  {elapsedTime ? (
+                    <p className="text-xs leading-tight">Timer: {elapsedTime}</p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
