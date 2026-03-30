@@ -1,6 +1,19 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 
+const normalizePlayerIds = (value: unknown) => {
+  if (!Array.isArray(value)) return "invalid";
+
+  const normalizedIds = value
+    .filter((playerId): playerId is string => typeof playerId === "string")
+    .map((playerId) => playerId.trim())
+    .filter((playerId) => playerId.length > 0);
+
+  if (normalizedIds.length !== value.length) return "invalid";
+
+  return [...new Set(normalizedIds)];
+};
+
 class CourtController {
   static postCourt = async (request: Request, response: Response) => {
     try {
@@ -60,9 +73,32 @@ class CourtController {
 
       const courts = await prisma.court.findMany({
         where: { sportId: sportId as string },
+        include: {
+          matches: {
+            where: { endedAt: null },
+            include: {
+              teamA: true,
+              teamB: true,
+              matchPlayers: {
+                include: {
+                  player: true,
+                  team: true,
+                },
+              },
+            },
+            orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
+            take: 1,
+          },
+        },
       });
 
-      return response.status(200).json({ success: true, courts });
+      return response.status(200).json({
+        success: true,
+        courts: courts.map(({ matches, ...court }) => ({
+          ...court,
+          currentMatch: matches[0] ?? null,
+        })),
+      });
     } catch (error: any) {
       console.error(`Get courts failed ${error}`);
       return response.status(500).json({
@@ -151,6 +187,241 @@ class CourtController {
       return response.status(500).json({
         success: false,
         message: "Patch court failed",
+        error_message: error.message,
+      });
+    }
+  };
+
+  static patchCourtTeams = async (request: Request, response: Response) => {
+    try {
+      const { sportId, courtId } = request.params;
+      const { teamAPlayerIds, teamBPlayerIds } = request.body ?? {};
+
+      const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
+      const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
+
+      if (
+        normalizedTeamAPlayerIds === "invalid" ||
+        normalizedTeamBPlayerIds === "invalid"
+      )
+        return response.status(400).json({
+          success: false,
+          message: "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
+        });
+
+      if (normalizedTeamAPlayerIds.length === 0 || normalizedTeamBPlayerIds.length === 0)
+        return response.status(400).json({
+          success: false,
+          message: "Team A and Team B must each have at least one player",
+        });
+
+      const duplicatePlayerId = normalizedTeamAPlayerIds.find((playerId) =>
+        normalizedTeamBPlayerIds.includes(playerId),
+      );
+
+      if (duplicatePlayerId)
+        return response.status(400).json({
+          success: false,
+          message: "A player cannot appear on both Team A and Team B",
+        });
+
+      const [sportExist, courtExist] = await Promise.all([
+        prisma.sport.findFirst({
+          where: { id: sportId as string },
+        }),
+        prisma.court.findFirst({
+          where: { id: courtId as string, sportId: sportId as string },
+        }),
+      ]);
+
+      if (!sportExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
+
+      if (!courtExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Court not found" });
+
+      const requestedPlayerIds = [
+        ...normalizedTeamAPlayerIds,
+        ...normalizedTeamBPlayerIds,
+      ];
+
+      const players = await prisma.player.findMany({
+        where: {
+          sportId: sportId as string,
+          id: { in: requestedPlayerIds },
+        },
+      });
+
+      if (players.length !== requestedPlayerIds.length)
+        return response.status(404).json({
+          success: false,
+          message: "One or more players were not found for this sport",
+        });
+
+      const existingMatch = await prisma.match.findFirst({
+        where: {
+          sportId: sportId as string,
+          courtId: courtId as string,
+          endedAt: null,
+        },
+        include: {
+          teamA: true,
+          teamB: true,
+        },
+        orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
+      });
+
+      const match = await prisma.$transaction(async (transaction) => {
+        if (!existingMatch) {
+          const [teamA, teamB] = await Promise.all([
+            transaction.team.create({
+              data: { sportId: sportId as string },
+            }),
+            transaction.team.create({
+              data: { sportId: sportId as string },
+            }),
+          ]);
+
+          if (normalizedTeamAPlayerIds.length > 0)
+            await transaction.teamPlayer.createMany({
+              data: normalizedTeamAPlayerIds.map((playerId) => ({
+                teamId: teamA.id,
+                playerId,
+              })),
+            });
+
+          if (normalizedTeamBPlayerIds.length > 0)
+            await transaction.teamPlayer.createMany({
+              data: normalizedTeamBPlayerIds.map((playerId) => ({
+                teamId: teamB.id,
+                playerId,
+              })),
+            });
+
+          return transaction.match.create({
+            data: {
+              sportId: sportId as string,
+              courtId: courtId as string,
+              teamAId: teamA.id,
+              teamBId: teamB.id,
+              queuedAt: new Date(),
+              matchPlayers: {
+                create: [
+                  ...normalizedTeamAPlayerIds.map((playerId) => ({
+                    playerId,
+                    teamId: teamA.id,
+                  })),
+                  ...normalizedTeamBPlayerIds.map((playerId) => ({
+                    playerId,
+                    teamId: teamB.id,
+                  })),
+                ],
+              },
+            },
+            include: {
+              teamA: true,
+              teamB: true,
+              court: true,
+              matchPlayers: {
+                include: {
+                  player: true,
+                  team: true,
+                },
+              },
+            },
+          });
+        }
+
+        const nextTeamAId =
+          existingMatch.teamAId ??
+          (
+            await transaction.team.create({
+              data: { sportId: sportId as string },
+            })
+          ).id;
+        const nextTeamBId =
+          existingMatch.teamBId ??
+          (
+            await transaction.team.create({
+              data: { sportId: sportId as string },
+            })
+          ).id;
+
+        await Promise.all([
+          transaction.teamPlayer.deleteMany({
+            where: { teamId: nextTeamAId },
+          }),
+          transaction.teamPlayer.deleteMany({
+            where: { teamId: nextTeamBId },
+          }),
+          transaction.matchPlayer.deleteMany({
+            where: { matchId: existingMatch.id },
+          }),
+        ]);
+
+        await Promise.all([
+          transaction.teamPlayer.createMany({
+            data: normalizedTeamAPlayerIds.map((playerId) => ({
+              teamId: nextTeamAId,
+              playerId,
+            })),
+          }),
+          transaction.teamPlayer.createMany({
+            data: normalizedTeamBPlayerIds.map((playerId) => ({
+              teamId: nextTeamBId,
+              playerId,
+            })),
+          }),
+          transaction.matchPlayer.createMany({
+            data: [
+              ...normalizedTeamAPlayerIds.map((playerId) => ({
+                matchId: existingMatch.id,
+                playerId,
+                teamId: nextTeamAId,
+              })),
+              ...normalizedTeamBPlayerIds.map((playerId) => ({
+                matchId: existingMatch.id,
+                playerId,
+                teamId: nextTeamBId,
+              })),
+            ],
+          }),
+        ]);
+
+        await transaction.match.update({
+          where: { id: existingMatch.id },
+          data: {
+            teamAId: nextTeamAId,
+            teamBId: nextTeamBId,
+          },
+        });
+
+        return transaction.match.findUnique({
+          where: { id: existingMatch.id },
+          include: {
+            teamA: true,
+            teamB: true,
+            court: true,
+            matchPlayers: {
+              include: {
+                player: true,
+                team: true,
+              },
+            },
+          },
+        });
+      });
+
+      return response.status(200).json({ success: true, match });
+    } catch (error: any) {
+      console.error(`Patch court teams failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Patch court teams failed",
         error_message: error.message,
       });
     }

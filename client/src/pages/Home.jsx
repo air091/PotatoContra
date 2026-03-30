@@ -16,11 +16,14 @@ const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
   const [isUpdatingCourt, setIsUpdatingCourt] = useState(false);
+  const [isSavingCourtTeams, setIsSavingCourtTeams] = useState(false);
   const [deletingCourtId, setDeletingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
   const [activeCourtMenuId, setActiveCourtMenuId] = useState(null);
   const [editCourtName, setEditCourtName] = useState("");
+  const [editCourtTeamAPlayerIds, setEditCourtTeamAPlayerIds] = useState([]);
+  const [editCourtTeamBPlayerIds, setEditCourtTeamBPlayerIds] = useState([]);
   const [editPlayerName, setEditPlayerName] = useState("");
   const [editSkillLevel, setEditSkillLevel] = useState("beginner");
   const [editPaymentStatus, setEditPaymentStatus] = useState(false);
@@ -120,6 +123,8 @@ const Home = () => {
     setActivePlayerMenuId(null);
     setActiveCourtMenuId(null);
     setEditCourtName("");
+    setEditCourtTeamAPlayerIds([]);
+    setEditCourtTeamBPlayerIds([]);
     setEditPlayerName("");
     setEditSkillLevel("beginner");
     setEditPaymentStatus(false);
@@ -154,11 +159,48 @@ const Home = () => {
   };
 
   const openCourtMenu = (court) => {
+    const currentMatch = court.currentMatch;
+    const teamAPlayerIds =
+      currentMatch?.matchPlayers
+        ?.filter((matchPlayer) => matchPlayer.teamId === currentMatch.teamAId)
+        .map((matchPlayer) => matchPlayer.playerId) ?? [];
+    const teamBPlayerIds =
+      currentMatch?.matchPlayers
+        ?.filter((matchPlayer) => matchPlayer.teamId === currentMatch.teamBId)
+        .map((matchPlayer) => matchPlayer.playerId) ?? [];
+
     setActiveCourtMenuId((currentMenuId) =>
       currentMenuId === court.id ? null : court.id,
     );
     setEditCourtName(court.name);
+    setEditCourtTeamAPlayerIds(teamAPlayerIds);
+    setEditCourtTeamBPlayerIds(teamBPlayerIds);
     setEditCourtError("");
+  };
+
+  const toggleCourtPlayer = (teamKey, playerId) => {
+    setEditCourtError("");
+
+    if (teamKey === "A") {
+      setEditCourtTeamAPlayerIds((currentPlayerIds) =>
+        currentPlayerIds.includes(playerId)
+          ? currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId)
+          : [...currentPlayerIds, playerId],
+      );
+      setEditCourtTeamBPlayerIds((currentPlayerIds) =>
+        currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId),
+      );
+      return;
+    }
+
+    setEditCourtTeamBPlayerIds((currentPlayerIds) =>
+      currentPlayerIds.includes(playerId)
+        ? currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId)
+        : [...currentPlayerIds, playerId],
+    );
+    setEditCourtTeamAPlayerIds((currentPlayerIds) =>
+      currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId),
+    );
   };
 
   const handleAddPlayer = async (event) => {
@@ -342,7 +384,10 @@ const Home = () => {
         throw new Error(data?.message ?? "Add court failed");
       }
 
-      setCourts((currentCourts) => [...currentCourts, data.court]);
+      setCourts((currentCourts) => [
+        ...currentCourts,
+        { ...data.court, currentMatch: null },
+      ]);
     } catch (addCourtError) {
       console.error("Add court failed", addCourtError);
       setCourtsError(addCourtError.message ?? "Unable to add court.");
@@ -375,6 +420,8 @@ const Home = () => {
       );
       setActiveCourtMenuId(null);
       setEditCourtName("");
+      setEditCourtTeamAPlayerIds([]);
+      setEditCourtTeamBPlayerIds([]);
     } catch (deleteCourtError) {
       console.error("Delete court failed", deleteCourtError);
       setEditCourtError(deleteCourtError.message ?? "Unable to delete court.");
@@ -415,16 +462,66 @@ const Home = () => {
 
       setCourts((currentCourts) =>
         currentCourts.map((court) =>
-          court.id === activeCourtMenuId ? data.court : court,
+          court.id === activeCourtMenuId
+            ? { ...court, ...data.court }
+            : court,
         ),
       );
       setActiveCourtMenuId(null);
       setEditCourtName("");
+      setEditCourtTeamAPlayerIds([]);
+      setEditCourtTeamBPlayerIds([]);
     } catch (updateCourtError) {
       console.error("Update court failed", updateCourtError);
       setEditCourtError(updateCourtError.message ?? "Unable to update court.");
     } finally {
       setIsUpdatingCourt(false);
+    }
+  };
+
+  const handleSaveCourtTeams = async () => {
+    try {
+      setIsSavingCourtTeams(true);
+      setEditCourtError("");
+
+      const response = await fetch(
+        `http://localhost:7007/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}/teams`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            teamAPlayerIds: editCourtTeamAPlayerIds,
+            teamBPlayerIds: editCourtTeamBPlayerIds,
+          }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message ?? "Save court teams failed");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === activeCourtMenuId
+            ? { ...court, currentMatch: data.match }
+            : court,
+        ),
+      );
+      setActiveCourtMenuId(null);
+      setEditCourtName("");
+      setEditCourtTeamAPlayerIds([]);
+      setEditCourtTeamBPlayerIds([]);
+    } catch (saveCourtTeamsError) {
+      console.error("Save court teams failed", saveCourtTeamsError);
+      setEditCourtError(
+        saveCourtTeamsError.message ?? "Unable to save court teams.",
+      );
+    } finally {
+      setIsSavingCourtTeams(false);
     }
   };
 
@@ -601,9 +698,12 @@ const Home = () => {
           <aside
             className="w-full border p-4 lg:w-80"
             onClick={() => {
-              if (isUpdatingCourt || deletingCourtId) return;
+              if (isUpdatingCourt || deletingCourtId || isSavingCourtTeams) return;
 
               setActiveCourtMenuId(null);
+              setEditCourtName("");
+              setEditCourtTeamAPlayerIds([]);
+              setEditCourtTeamBPlayerIds([]);
               setEditCourtError("");
             }}
           >
@@ -632,30 +732,86 @@ const Home = () => {
                 {courts.map((court) => (
                   <div
                     key={court.id}
-                    className="relative flex items-start justify-between gap-3 rounded border px-3 py-2"
+                    className="relative rounded border px-3 py-2"
                   >
-                    <div>
-                      <p className="text-sm font-semibold leading-tight">
-                        {court.name}
-                      </p>
-                      <p className="text-xs leading-tight">
-                        {court.isActive ? "Active" : "Inactive"}
-                      </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold leading-tight">
+                          {court.name}
+                        </p>
+                        <p className="text-xs leading-tight">
+                          {court.isActive ? "Active" : "Inactive"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="cursor-pointer"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openCourtMenu(court);
+                        }}
+                      >
+                        <IoEllipsisVertical />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="cursor-pointer"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openCourtMenu(court);
-                      }}
-                    >
-                      <IoEllipsisVertical />
-                    </button>
+
+                    <div className="mt-3 space-y-2">
+                      <div>
+                        <p className="text-xs font-semibold">Team A</p>
+                        {court.currentMatch?.matchPlayers?.filter(
+                          (matchPlayer) =>
+                            matchPlayer.teamId === court.currentMatch?.teamAId,
+                        ).length ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {court.currentMatch.matchPlayers
+                              .filter(
+                                (matchPlayer) =>
+                                  matchPlayer.teamId === court.currentMatch?.teamAId,
+                              )
+                              .map((matchPlayer) => (
+                                <span
+                                  key={`${court.id}-team-a-${matchPlayer.playerId}`}
+                                  className="rounded border px-2 py-0.5 text-xs"
+                                >
+                                  {matchPlayer.player.name}
+                                </span>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs">No players yet.</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold">Team B</p>
+                        {court.currentMatch?.matchPlayers?.filter(
+                          (matchPlayer) =>
+                            matchPlayer.teamId === court.currentMatch?.teamBId,
+                        ).length ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {court.currentMatch.matchPlayers
+                              .filter(
+                                (matchPlayer) =>
+                                  matchPlayer.teamId === court.currentMatch?.teamBId,
+                              )
+                              .map((matchPlayer) => (
+                                <span
+                                  key={`${court.id}-team-b-${matchPlayer.playerId}`}
+                                  className="rounded border px-2 py-0.5 text-xs"
+                                >
+                                  {matchPlayer.player.name}
+                                </span>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs">No players yet.</p>
+                        )}
+                      </div>
+                    </div>
 
                     {activeCourtMenuId === court.id ? (
                       <div
-                        className="absolute right-0 top-8 z-10 w-56 border bg-white p-3"
+                        className="absolute right-0 top-8 z-10 w-72 border bg-white p-3"
                         onClick={(event) => event.stopPropagation()}
                       >
                         <form onSubmit={handleEditCourt} className="space-y-3">
@@ -668,24 +824,98 @@ const Home = () => {
                                 setEditCourtName(event.target.value)
                               }
                               className="w-full border px-2 py-1 text-sm"
-                              disabled={deletingCourtId === court.id}
+                              disabled={
+                                deletingCourtId === court.id || isSavingCourtTeams
+                              }
                               autoFocus
                             />
                           </label>
 
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="mb-2 text-xs font-semibold">Team A</p>
+                              <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+                                {players.map((player) => (
+                                  <label
+                                    key={`${court.id}-team-a-option-${player.id}`}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={editCourtTeamAPlayerIds.includes(player.id)}
+                                      onChange={() => toggleCourtPlayer("A", player.id)}
+                                      disabled={
+                                        isSavingCourtTeams ||
+                                        deletingCourtId === court.id ||
+                                        isUpdatingCourt
+                                      }
+                                    />
+                                    <span>{player.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="mb-2 text-xs font-semibold">Team B</p>
+                              <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+                                {players.map((player) => (
+                                  <label
+                                    key={`${court.id}-team-b-option-${player.id}`}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={editCourtTeamBPlayerIds.includes(player.id)}
+                                      onChange={() => toggleCourtPlayer("B", player.id)}
+                                      disabled={
+                                        isSavingCourtTeams ||
+                                        deletingCourtId === court.id ||
+                                        isUpdatingCourt
+                                      }
+                                    />
+                                    <span>{player.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
                           {editCourtError ? (
                             <p className="text-xs">{editCourtError}</p>
                           ) : null}
+
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={handleSaveCourtTeams}
+                              disabled={
+                                isSavingCourtTeams ||
+                                isUpdatingCourt ||
+                                deletingCourtId === court.id ||
+                                isPlayersLoading ||
+                                players.length === 0
+                              }
+                              className="border px-2 py-1 text-xs"
+                            >
+                              {isSavingCourtTeams ? "Saving teams..." : "Save teams"}
+                            </button>
+                          </div>
 
                           <div className="flex justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => {
                                 setActiveCourtMenuId(null);
+                                setEditCourtName("");
+                                setEditCourtTeamAPlayerIds([]);
+                                setEditCourtTeamBPlayerIds([]);
                                 setEditCourtError("");
                               }}
                               disabled={
-                                isUpdatingCourt || deletingCourtId === court.id
+                                isUpdatingCourt ||
+                                deletingCourtId === court.id ||
+                                isSavingCourtTeams
                               }
                               className="border px-2 py-1 text-xs"
                             >
@@ -695,7 +925,9 @@ const Home = () => {
                               type="button"
                               onClick={() => handleDeleteCourt(court.id)}
                               disabled={
-                                isUpdatingCourt || deletingCourtId === court.id
+                                isUpdatingCourt ||
+                                deletingCourtId === court.id ||
+                                isSavingCourtTeams
                               }
                               className="border px-2 py-1 text-xs"
                             >
@@ -706,7 +938,9 @@ const Home = () => {
                             <button
                               type="submit"
                               disabled={
-                                isUpdatingCourt || deletingCourtId === court.id
+                                isUpdatingCourt ||
+                                deletingCourtId === court.id ||
+                                isSavingCourtTeams
                               }
                               className="border px-2 py-1 text-xs"
                             >
