@@ -6,7 +6,6 @@ const CourtsPanel = ({
   courtsError,
   isUpdatingCourt,
   deletingCourtId,
-  isSavingCourtTeams,
   setActiveCourtMenuId,
   setEditCourtName,
   setEditCourtTeamAPlayerIds,
@@ -23,7 +22,6 @@ const CourtsPanel = ({
   players,
   toggleCourtPlayer,
   editCourtError,
-  handleSaveCourtTeams,
   handleDeleteCourt,
   handleEditCourt,
   isPlayersLoading,
@@ -32,7 +30,7 @@ const CourtsPanel = ({
     <div
       className="w-full border p-4"
       onClick={() => {
-        if (isUpdatingCourt || deletingCourtId || isSavingCourtTeams) return;
+        if (isUpdatingCourt || deletingCourtId) return;
 
         setActiveCourtMenuId(null);
         setEditCourtName("");
@@ -93,7 +91,7 @@ const CourtsPanel = ({
                     (matchPlayer) =>
                       matchPlayer.teamId === court.currentMatch?.teamAId,
                   ).length ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 grid grid-cols-2 gap-1">
                       {court.currentMatch.matchPlayers
                         .filter(
                           (matchPlayer) =>
@@ -119,7 +117,7 @@ const CourtsPanel = ({
                     (matchPlayer) =>
                       matchPlayer.teamId === court.currentMatch?.teamBId,
                   ).length ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 grid grid-cols-2 gap-1">
                       {court.currentMatch.matchPlayers
                         .filter(
                           (matchPlayer) =>
@@ -155,9 +153,7 @@ const CourtsPanel = ({
                           setEditCourtNameProp(event.target.value)
                         }
                         className="w-full border px-2 py-1 text-sm"
-                        disabled={
-                          deletingCourtId === court.id || isSavingCourtTeams
-                        }
+                        disabled={deletingCourtId === court.id || isUpdatingCourt}
                         autoFocus
                       />
                     </label>
@@ -176,9 +172,9 @@ const CourtsPanel = ({
                                 checked={editCourtTeamAPlayerIds.includes(player.id)}
                                 onChange={() => toggleCourtPlayer("A", player.id)}
                                 disabled={
-                                  isSavingCourtTeams ||
+                                  isUpdatingCourt ||
                                   deletingCourtId === court.id ||
-                                  isUpdatingCourt
+                                  isPlayersLoading
                                 }
                               />
                               <span>{player.name}</span>
@@ -200,9 +196,9 @@ const CourtsPanel = ({
                                 checked={editCourtTeamBPlayerIds.includes(player.id)}
                                 onChange={() => toggleCourtPlayer("B", player.id)}
                                 disabled={
-                                  isSavingCourtTeams ||
+                                  isUpdatingCourt ||
                                   deletingCourtId === court.id ||
-                                  isUpdatingCourt
+                                  isPlayersLoading
                                 }
                               />
                               <span>{player.name}</span>
@@ -216,23 +212,6 @@ const CourtsPanel = ({
                       <p className="text-xs">{editCourtError}</p>
                     ) : null}
 
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={handleSaveCourtTeams}
-                        disabled={
-                          isSavingCourtTeams ||
-                          isUpdatingCourt ||
-                          deletingCourtId === court.id ||
-                          isPlayersLoading ||
-                          players.length === 0
-                        }
-                        className="border px-2 py-1 text-xs"
-                      >
-                        {isSavingCourtTeams ? "Saving teams..." : "Save teams"}
-                      </button>
-                    </div>
-
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
@@ -245,8 +224,7 @@ const CourtsPanel = ({
                         }}
                         disabled={
                           isUpdatingCourt ||
-                          deletingCourtId === court.id ||
-                          isSavingCourtTeams
+                          deletingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
@@ -257,8 +235,7 @@ const CourtsPanel = ({
                         onClick={() => handleDeleteCourt(court.id)}
                         disabled={
                           isUpdatingCourt ||
-                          deletingCourtId === court.id ||
-                          isSavingCourtTeams
+                          deletingCourtId === court.id
                         }
                         className="border px-2 py-1 text-xs"
                       >
@@ -269,7 +246,8 @@ const CourtsPanel = ({
                         disabled={
                           isUpdatingCourt ||
                           deletingCourtId === court.id ||
-                          isSavingCourtTeams
+                          isPlayersLoading ||
+                          players.length === 0
                         }
                         className="border px-2 py-1 text-xs"
                       >

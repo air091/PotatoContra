@@ -17,7 +17,6 @@ const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCourtSubmitting, setIsCourtSubmitting] = useState(false);
   const [isUpdatingCourt, setIsUpdatingCourt] = useState(false);
-  const [isSavingCourtTeams, setIsSavingCourtTeams] = useState(false);
   const [deletingCourtId, setDeletingCourtId] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [activePlayerMenuId, setActivePlayerMenuId] = useState(null);
@@ -445,47 +444,6 @@ const Home = () => {
       setEditCourtError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ name: trimmedCourtName }),
-        },
-      );
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data?.message ?? "Update court failed");
-      }
-
-      setCourts((currentCourts) =>
-        currentCourts.map((court) =>
-          court.id === activeCourtMenuId
-            ? { ...court, ...data.court }
-            : court,
-        ),
-      );
-      setActiveCourtMenuId(null);
-      setEditCourtName("");
-      setEditCourtTeamAPlayerIds([]);
-      setEditCourtTeamBPlayerIds([]);
-    } catch (updateCourtError) {
-      console.error("Update court failed", updateCourtError);
-      setEditCourtError(updateCourtError.message ?? "Unable to update court.");
-    } finally {
-      setIsUpdatingCourt(false);
-    }
-  };
-
-  const handleSaveCourtTeams = async () => {
-    try {
-      setIsSavingCourtTeams(true);
-      setEditCourtError("");
-
-      const response = await fetch(
         `http://localhost:7007/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}/teams`,
         {
           method: "PATCH",
@@ -494,6 +452,7 @@ const Home = () => {
           },
           credentials: "include",
           body: JSON.stringify({
+            name: trimmedCourtName,
             teamAPlayerIds: editCourtTeamAPlayerIds,
             teamBPlayerIds: editCourtTeamBPlayerIds,
           }),
@@ -502,13 +461,13 @@ const Home = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data?.message ?? "Save court teams failed");
+        throw new Error(data?.message ?? "Save court failed");
       }
 
       setCourts((currentCourts) =>
         currentCourts.map((court) =>
           court.id === activeCourtMenuId
-            ? { ...court, currentMatch: data.match }
+            ? { ...court, ...data.court, currentMatch: data.match }
             : court,
         ),
       );
@@ -516,13 +475,11 @@ const Home = () => {
       setEditCourtName("");
       setEditCourtTeamAPlayerIds([]);
       setEditCourtTeamBPlayerIds([]);
-    } catch (saveCourtTeamsError) {
-      console.error("Save court teams failed", saveCourtTeamsError);
-      setEditCourtError(
-        saveCourtTeamsError.message ?? "Unable to save court teams.",
-      );
+    } catch (updateCourtError) {
+      console.error("Save court failed", updateCourtError);
+      setEditCourtError(updateCourtError.message ?? "Unable to save court.");
     } finally {
-      setIsSavingCourtTeams(false);
+      setIsUpdatingCourt(false);
     }
   };
 
@@ -563,7 +520,6 @@ const Home = () => {
             courtsError={courtsError}
             isUpdatingCourt={isUpdatingCourt}
             deletingCourtId={deletingCourtId}
-            isSavingCourtTeams={isSavingCourtTeams}
             setActiveCourtMenuId={setActiveCourtMenuId}
             setEditCourtName={setEditCourtName}
             setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
@@ -580,7 +536,6 @@ const Home = () => {
             players={players}
             toggleCourtPlayer={toggleCourtPlayer}
             editCourtError={editCourtError}
-            handleSaveCourtTeams={handleSaveCourtTeams}
             handleDeleteCourt={handleDeleteCourt}
             handleEditCourt={handleEditCourt}
             isPlayersLoading={isPlayersLoading}

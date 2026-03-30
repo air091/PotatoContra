@@ -195,10 +195,16 @@ class CourtController {
   static patchCourtTeams = async (request: Request, response: Response) => {
     try {
       const { sportId, courtId } = request.params;
-      const { teamAPlayerIds, teamBPlayerIds } = request.body ?? {};
+      const { name, teamAPlayerIds, teamBPlayerIds } = request.body ?? {};
 
       const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
       const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
+
+      if (name !== undefined && (typeof name !== "string" || name.trim().length === 0))
+        return response.status(400).json({
+          success: false,
+          message: "Name must be a non-empty string",
+        });
 
       if (
         normalizedTeamAPlayerIds === "invalid" ||
@@ -244,6 +250,9 @@ class CourtController {
           .status(404)
           .json({ success: false, message: "Court not found" });
 
+      const nextCourtName =
+        typeof name === "string" ? name.trim() : courtExist.name;
+
       const requestedPlayerIds = [
         ...normalizedTeamAPlayerIds,
         ...normalizedTeamBPlayerIds,
@@ -275,7 +284,15 @@ class CourtController {
         orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
       });
 
-      const match = await prisma.$transaction(async (transaction) => {
+      const result = await prisma.$transaction(async (transaction) => {
+        const updatedCourt =
+          nextCourtName !== courtExist.name
+            ? await transaction.court.update({
+                where: { id: courtId as string },
+                data: { name: nextCourtName },
+              })
+            : courtExist;
+
         if (!existingMatch) {
           const [teamA, teamB] = await Promise.all([
             transaction.team.create({
@@ -302,7 +319,7 @@ class CourtController {
               })),
             });
 
-          return transaction.match.create({
+          const match = await transaction.match.create({
             data: {
               sportId: sportId as string,
               courtId: courtId as string,
@@ -334,6 +351,8 @@ class CourtController {
               },
             },
           });
+
+          return { court: updatedCourt, match };
         }
 
         const nextTeamAId =
@@ -400,7 +419,7 @@ class CourtController {
           },
         });
 
-        return transaction.match.findUnique({
+        const match = await transaction.match.findUnique({
           where: { id: existingMatch.id },
           include: {
             teamA: true,
@@ -414,9 +433,13 @@ class CourtController {
             },
           },
         });
+
+        return { court: updatedCourt, match };
       });
 
-      return response.status(200).json({ success: true, match });
+      return response
+        .status(200)
+        .json({ success: true, court: result.court, match: result.match });
     } catch (error: any) {
       console.error(`Patch court teams failed ${error}`);
       return response.status(500).json({
