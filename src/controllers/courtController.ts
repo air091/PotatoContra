@@ -86,7 +86,11 @@ class CourtController {
                 },
               },
             },
-            orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
+            orderBy: [
+              { startedAt: "desc" },
+              { queuedAt: "desc" },
+              { id: "desc" },
+            ],
             take: 1,
           },
         },
@@ -392,7 +396,8 @@ class CourtController {
       if (teamAPlayerCount === 0 || teamBPlayerCount === 0)
         return response.status(400).json({
           success: false,
-          message: "Start requires at least 1 player on Team A and 1 player on Team B",
+          message:
+            "Start requires at least 1 player on Team A and 1 player on Team B",
         });
 
       const match = await prisma.match.update({
@@ -479,7 +484,10 @@ class CourtController {
       const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
       const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
 
-      if (name !== undefined && (typeof name !== "string" || name.trim().length === 0))
+      if (
+        name !== undefined &&
+        (typeof name !== "string" || name.trim().length === 0)
+      )
         return response.status(400).json({
           success: false,
           message: "Name must be a non-empty string",
@@ -491,13 +499,8 @@ class CourtController {
       )
         return response.status(400).json({
           success: false,
-          message: "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
-        });
-
-      if (normalizedTeamAPlayerIds.length === 0 || normalizedTeamBPlayerIds.length === 0)
-        return response.status(400).json({
-          success: false,
-          message: "Team A and Team B must each have at least one player",
+          message:
+            "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
         });
 
       const duplicatePlayerId = normalizedTeamAPlayerIds.find((playerId) =>

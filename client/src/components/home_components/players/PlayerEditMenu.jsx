@@ -13,6 +13,7 @@ const PlayerEditMenu = ({
   handleDeletePlayer,
   isUpdatingPlayer,
   deletingPlayerId,
+  matchesPlayed,
 }) => {
   return (
     <div
@@ -55,6 +56,12 @@ const PlayerEditMenu = ({
           />
           <span>Payment received</span>
         </label>
+
+        <div className="rounded bg-gray-50 p-2">
+          <p className="text-xs font-semibold">
+            Matches played: <span className="font-normal">{matchesPlayed}</span>
+          </p>
+        </div>
 
         {editPlayerError ? <p className="text-xs">{editPlayerError}</p> : null}
 

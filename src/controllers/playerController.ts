@@ -245,7 +245,10 @@ class PlayerController {
             },
           },
         },
-        orderBy: [{ match: { endedAt: "desc" } }, { match: { startedAt: "desc" } }],
+        orderBy: [
+          { match: { endedAt: "desc" } },
+          { match: { startedAt: "desc" } },
+        ],
       });
 
       const matches = history.map((entry) => {
@@ -303,6 +306,53 @@ class PlayerController {
       return response.status(500).json({
         success: false,
         message: "Get player history failed",
+        error_message: error.message,
+      });
+    }
+  };
+
+  static getPlayersMatchCount = async (
+    request: Request,
+    response: Response,
+  ) => {
+    try {
+      const { sportId } = request.params;
+
+      const sportExist = await prisma.sport.findFirst({
+        where: { id: sportId as string },
+      });
+      if (!sportExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
+
+      const players = await prisma.player.findMany({
+        where: { sportId: sportId as string },
+        select: {
+          id: true,
+          name: true,
+          matchPlayers: {
+            where: {
+              match: {
+                startedAt: { not: null },
+              },
+            },
+          },
+        },
+      });
+
+      const playerMatchCounts = players.map((player) => ({
+        id: player.id,
+        name: player.name,
+        matchesPlayed: player.matchPlayers.length,
+      }));
+
+      return response.status(200).json({ success: true, playerMatchCounts });
+    } catch (error: any) {
+      console.error(`Get players match count failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Get players match count failed",
         error_message: error.message,
       });
     }

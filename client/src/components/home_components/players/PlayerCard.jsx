@@ -18,6 +18,7 @@ const PlayerCard = ({
   handleDeletePlayer,
   isUpdatingPlayer,
   deletingPlayerId,
+  matchesPlayed,
 }) => {
   return (
     <div className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1">
@@ -53,6 +54,7 @@ const PlayerCard = ({
           handleDeletePlayer={handleDeletePlayer}
           isUpdatingPlayer={isUpdatingPlayer}
           deletingPlayerId={deletingPlayerId}
+          matchesPlayed={matchesPlayed}
         />
       ) : null}
     </div>

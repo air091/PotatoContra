@@ -53,6 +53,7 @@ const Home = () => {
   const [deletingPlayerId, setDeletingPlayerId] = useState(null);
   const [editPlayerError, setEditPlayerError] = useState("");
   const [editCourtError, setEditCourtError] = useState("");
+  const [playerMatchCounts, setPlayerMatchCounts] = useState({});
   const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
     courts,
     activeCourtMenuId,
@@ -103,6 +104,34 @@ const Home = () => {
         setPlayersError("Unable to load players.");
       } finally {
         setIsPlayersLoading(false);
+      }
+    };
+
+    const getPlayersMatchCountAPI = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:7007/api/players/matches-stats/${selectedSport.id}`,
+          {
+            method: "GET",
+            credentials: "include",
+            signal: abortController.signal,
+          },
+        );
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          console.error("Failed to fetch player match counts");
+          return;
+        }
+
+        const countMap = {};
+        data.playerMatchCounts.forEach((item) => {
+          countMap[item.id] = item.matchesPlayed;
+        });
+        setPlayerMatchCounts(countMap);
+      } catch (fetchError) {
+        if (fetchError.name === "AbortError") return;
+        console.error("Player match count API failed", fetchError);
       }
     };
 
@@ -162,6 +191,7 @@ const Home = () => {
     setEditPlayerError("");
     setEditCourtError("");
     getPlayersAPI();
+    getPlayersMatchCountAPI();
     getCourtsAPI();
 
     return () => {
@@ -189,8 +219,14 @@ const Home = () => {
 
   const openCourtMenu = (court) => {
     const currentMatch = court.currentMatch;
-    const teamAPlayerIds = getTeamPlayerIds(currentMatch, currentMatch?.teamAId);
-    const teamBPlayerIds = getTeamPlayerIds(currentMatch, currentMatch?.teamBId);
+    const teamAPlayerIds = getTeamPlayerIds(
+      currentMatch,
+      currentMatch?.teamAId,
+    );
+    const teamBPlayerIds = getTeamPlayerIds(
+      currentMatch,
+      currentMatch?.teamBId,
+    );
 
     setActiveCourtMenuId((currentMenuId) =>
       currentMenuId === court.id ? null : court.id,
@@ -205,7 +241,9 @@ const Home = () => {
     const assignedCourtName = unavailablePlayerCourtMap.get(playerId);
 
     if (assignedCourtName) {
-      setEditCourtError(`This player is already assigned to ${assignedCourtName}.`);
+      setEditCourtError(
+        `This player is already assigned to ${assignedCourtName}.`,
+      );
       return;
     }
 
@@ -214,22 +252,30 @@ const Home = () => {
     if (teamKey === "A") {
       setEditCourtTeamAPlayerIds((currentPlayerIds) =>
         currentPlayerIds.includes(playerId)
-          ? currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId)
+          ? currentPlayerIds.filter(
+              (currentPlayerId) => currentPlayerId !== playerId,
+            )
           : [...currentPlayerIds, playerId],
       );
       setEditCourtTeamBPlayerIds((currentPlayerIds) =>
-        currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId),
+        currentPlayerIds.filter(
+          (currentPlayerId) => currentPlayerId !== playerId,
+        ),
       );
       return;
     }
 
     setEditCourtTeamBPlayerIds((currentPlayerIds) =>
       currentPlayerIds.includes(playerId)
-        ? currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId)
+        ? currentPlayerIds.filter(
+            (currentPlayerId) => currentPlayerId !== playerId,
+          )
         : [...currentPlayerIds, playerId],
     );
     setEditCourtTeamAPlayerIds((currentPlayerIds) =>
-      currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId),
+      currentPlayerIds.filter(
+        (currentPlayerId) => currentPlayerId !== playerId,
+      ),
     );
   };
 
@@ -482,7 +528,8 @@ const Home = () => {
       const conflictingPlayer = players.find(
         (player) => player.id === conflictingPlayerId,
       );
-      const assignedCourtName = unavailablePlayerCourtMap.get(conflictingPlayerId);
+      const assignedCourtName =
+        unavailablePlayerCourtMap.get(conflictingPlayerId);
 
       setEditCourtError(
         `${conflictingPlayer?.name ?? "This player"} is already assigned to ${assignedCourtName}.`,
@@ -658,63 +705,62 @@ const Home = () => {
   return (
     <>
       <section className="border p-4 flex">
-        
-          <PlayersPanel
-            selectedSport={selectedSport}
-            players={players}
-            isPlayersLoading={isPlayersLoading}
-            playersError={playersError}
-            setIsAddPlayerOpen={setIsAddPlayerOpen}
-            isUpdatingPlayer={isUpdatingPlayer}
-            deletingPlayerId={deletingPlayerId}
-            setActivePlayerMenuId={setActivePlayerMenuId}
-            setEditPlayerError={setEditPlayerError}
-            openPlayerMenu={openPlayerMenu}
-            activePlayerMenuId={activePlayerMenuId}
-            handleEditPlayer={handleEditPlayer}
-            editPlayerName={editPlayerName}
-            setEditPlayerName={setEditPlayerName}
-            editSkillLevel={editSkillLevel}
-            setEditSkillLevel={setEditSkillLevel}
-            editPaymentStatus={editPaymentStatus}
-            setEditPaymentStatus={setEditPaymentStatus}
-            editPlayerError={editPlayerError}
-            handleDeletePlayer={handleDeletePlayer}
-          />
-          <CourtsPanel
-            courts={courts}
-            isCourtsLoading={isCourtsLoading}
-            courtsError={courtsError}
-            isUpdatingCourt={isUpdatingCourt}
-            deletingCourtId={deletingCourtId}
-            startingCourtId={startingCourtId}
-            resettingCourtId={resettingCourtId}
-            endingCourtId={endingCourtId}
-            setActiveCourtMenuId={setActiveCourtMenuId}
-            setEditCourtName={setEditCourtName}
-            setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
-            setEditCourtTeamBPlayerIds={setEditCourtTeamBPlayerIds}
-            setEditCourtError={setEditCourtError}
-            isCourtSubmitting={isCourtSubmitting}
-            handleAddCourt={handleAddCourt}
-            openCourtMenu={openCourtMenu}
-            activeCourtMenuId={activeCourtMenuId}
-            editCourtName={editCourtName}
-            setEditCourtNameProp={setEditCourtName}
-            editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
-            editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
-            players={players}
-            unavailablePlayerCourtMap={unavailablePlayerCourtMap}
-            toggleCourtPlayer={toggleCourtPlayer}
-            editCourtError={editCourtError}
-            handleDeleteCourt={handleDeleteCourt}
-            handleEditCourt={handleEditCourt}
-            handleStartCourt={handleStartCourt}
-            handleResetCourt={handleResetCourt}
-            handleEndCourt={handleEndCourt}
-            isPlayersLoading={isPlayersLoading}
-          />
-        
+        <PlayersPanel
+          selectedSport={selectedSport}
+          players={players}
+          isPlayersLoading={isPlayersLoading}
+          playersError={playersError}
+          setIsAddPlayerOpen={setIsAddPlayerOpen}
+          isUpdatingPlayer={isUpdatingPlayer}
+          deletingPlayerId={deletingPlayerId}
+          setActivePlayerMenuId={setActivePlayerMenuId}
+          setEditPlayerError={setEditPlayerError}
+          openPlayerMenu={openPlayerMenu}
+          activePlayerMenuId={activePlayerMenuId}
+          handleEditPlayer={handleEditPlayer}
+          editPlayerName={editPlayerName}
+          setEditPlayerName={setEditPlayerName}
+          editSkillLevel={editSkillLevel}
+          setEditSkillLevel={setEditSkillLevel}
+          editPaymentStatus={editPaymentStatus}
+          setEditPaymentStatus={setEditPaymentStatus}
+          editPlayerError={editPlayerError}
+          handleDeletePlayer={handleDeletePlayer}
+          playerMatchCounts={playerMatchCounts}
+        />
+        <CourtsPanel
+          courts={courts}
+          isCourtsLoading={isCourtsLoading}
+          courtsError={courtsError}
+          isUpdatingCourt={isUpdatingCourt}
+          deletingCourtId={deletingCourtId}
+          startingCourtId={startingCourtId}
+          resettingCourtId={resettingCourtId}
+          endingCourtId={endingCourtId}
+          setActiveCourtMenuId={setActiveCourtMenuId}
+          setEditCourtName={setEditCourtName}
+          setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
+          setEditCourtTeamBPlayerIds={setEditCourtTeamBPlayerIds}
+          setEditCourtError={setEditCourtError}
+          isCourtSubmitting={isCourtSubmitting}
+          handleAddCourt={handleAddCourt}
+          openCourtMenu={openCourtMenu}
+          activeCourtMenuId={activeCourtMenuId}
+          editCourtName={editCourtName}
+          setEditCourtNameProp={setEditCourtName}
+          editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
+          editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
+          players={players}
+          unavailablePlayerCourtMap={unavailablePlayerCourtMap}
+          toggleCourtPlayer={toggleCourtPlayer}
+          editCourtError={editCourtError}
+          handleDeleteCourt={handleDeleteCourt}
+          handleEditCourt={handleEditCourt}
+          handleStartCourt={handleStartCourt}
+          handleResetCourt={handleResetCourt}
+          handleEndCourt={handleEndCourt}
+          isPlayersLoading={isPlayersLoading}
+        />
       </section>
 
       {isAddPlayerOpen ? (

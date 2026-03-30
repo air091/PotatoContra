@@ -57,7 +57,7 @@ const CourtCard = ({
     endingCourtId === court.id;
 
   return (
-    <div className="relative rounded border px-3 py-2">
+    <div className="relative rounded border px-3 py-2 h-fit">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold leading-tight">{court.name}</p>

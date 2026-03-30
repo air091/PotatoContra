@@ -21,6 +21,7 @@ const PlayersPanel = ({
   setEditPaymentStatus,
   editPlayerError,
   handleDeletePlayer,
+  playerMatchCounts,
 }) => {
   return (
     <div
@@ -82,6 +83,7 @@ const PlayersPanel = ({
                 handleDeletePlayer={handleDeletePlayer}
                 isUpdatingPlayer={isUpdatingPlayer}
                 deletingPlayerId={deletingPlayerId}
+                matchesPlayed={playerMatchCounts[player.id] ?? 0}
               />
             ))}
           </div>
