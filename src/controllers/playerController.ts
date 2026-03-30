@@ -242,6 +242,11 @@ class PlayerController {
               court: true,
               teamA: true,
               teamB: true,
+              matchPlayers: {
+                include: {
+                  player: true,
+                },
+              },
             },
           },
         },
@@ -263,11 +268,29 @@ class PlayerController {
               ? "win"
               : "loss";
 
+        const teamMembers = entry.match.matchPlayers
+          .filter(
+            (mp) => mp.teamId === entry.teamId && mp.playerId !== playerId,
+          )
+          .map((mp) => ({
+            id: mp.player.id,
+            name: mp.player.name,
+          }));
+
+        const opponentMembers = entry.match.matchPlayers
+          .filter((mp) => mp.teamId === opponentTeam?.id)
+          .map((mp) => ({
+            id: mp.player.id,
+            name: mp.player.name,
+          }));
+
         return {
           matchId: entry.matchId,
           sport: entry.match.sport,
           team: entry.team,
+          teamMembers,
           opponentTeam,
+          opponentMembers,
           court: entry.match.court,
           queuedAt: entry.match.queuedAt,
           startedAt: entry.match.startedAt,

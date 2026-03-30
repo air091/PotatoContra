@@ -1,5 +1,8 @@
+import PlayerHistoryModal from "./PlayerHistoryModal";
+
 const PlayerEditMenu = ({
   player,
+  selectedSport,
   handleEditPlayer,
   editPlayerName,
   setEditPlayerName,
@@ -14,6 +17,8 @@ const PlayerEditMenu = ({
   isUpdatingPlayer,
   deletingPlayerId,
   matchesPlayed,
+  isHistoryOpen,
+  setIsHistoryOpen,
 }) => {
   return (
     <div
@@ -64,6 +69,23 @@ const PlayerEditMenu = ({
         </div>
 
         {editPlayerError ? <p className="text-xs">{editPlayerError}</p> : null}
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsHistoryOpen(true);
+          }}
+          disabled={isUpdatingPlayer || deletingPlayerId === player.id}
+          className="w-full border px-2 py-1 text-xs hover:bg-blue-50"
+        >
+          View History
+        </button>
+
+        <PlayerHistoryModal
+          playerId={player.id}
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+        />
 
         <div className="flex justify-end gap-2">
           <button

@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import PlayerEditMenu from "./PlayerEditMenu";
 
 const PlayerCard = ({
   player,
+  selectedSport,
   openPlayerMenu,
   activePlayerMenuId,
   handleEditPlayer,
@@ -20,6 +22,7 @@ const PlayerCard = ({
   deletingPlayerId,
   matchesPlayed,
 }) => {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   return (
     <div className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1">
       <div>
@@ -41,6 +44,7 @@ const PlayerCard = ({
       {activePlayerMenuId === player.id ? (
         <PlayerEditMenu
           player={player}
+          selectedSport={selectedSport}
           handleEditPlayer={handleEditPlayer}
           editPlayerName={editPlayerName}
           setEditPlayerName={setEditPlayerName}
@@ -55,6 +59,8 @@ const PlayerCard = ({
           isUpdatingPlayer={isUpdatingPlayer}
           deletingPlayerId={deletingPlayerId}
           matchesPlayed={matchesPlayed}
+          isHistoryOpen={isHistoryOpen}
+          setIsHistoryOpen={setIsHistoryOpen}
         />
       ) : null}
     </div>

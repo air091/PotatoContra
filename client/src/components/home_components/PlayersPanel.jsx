@@ -68,6 +68,7 @@ const PlayersPanel = ({
               <PlayerCard
                 key={player.id}
                 player={player}
+                selectedSport={selectedSport}
                 openPlayerMenu={openPlayerMenu}
                 activePlayerMenuId={activePlayerMenuId}
                 handleEditPlayer={handleEditPlayer}

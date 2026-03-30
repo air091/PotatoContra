@@ -603,10 +603,10 @@ class CourtController {
         if (!existingMatch) {
           const [teamA, teamB] = await Promise.all([
             transaction.team.create({
-              data: { sportId: sportId as string },
+              data: { sportId: sportId as string, name: "Team A" },
             }),
             transaction.team.create({
-              data: { sportId: sportId as string },
+              data: { sportId: sportId as string, name: "Team B" },
             }),
           ]);
 
@@ -666,14 +666,14 @@ class CourtController {
           existingMatch.teamAId ??
           (
             await transaction.team.create({
-              data: { sportId: sportId as string },
+              data: { sportId: sportId as string, name: "Team A" },
             })
           ).id;
         const nextTeamBId =
           existingMatch.teamBId ??
           (
             await transaction.team.create({
-              data: { sportId: sportId as string },
+              data: { sportId: sportId as string, name: "Team B" },
             })
           ).id;
 

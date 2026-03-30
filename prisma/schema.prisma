@@ -42,6 +42,7 @@ model Player {
 
 model Team {
   id            String @id @default(uuid())
+  name          String?
   sportId       String
   sport         Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   teamPlayers   TeamPlayer[]
