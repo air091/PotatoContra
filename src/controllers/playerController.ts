@@ -212,6 +212,101 @@ class PlayerController {
       });
     }
   };
+
+  static getPlayerHistory = async (request: Request, response: Response) => {
+    try {
+      const { playerId } = request.params;
+
+      if (!playerId)
+        return response
+          .status(400)
+          .json({ success: false, message: "playerId is required" });
+
+      const player = await prisma.player.findUnique({
+        where: { id: playerId as string },
+        include: { sport: true },
+      });
+
+      if (!player)
+        return response
+          .status(404)
+          .json({ success: false, message: "Player not found" });
+
+      const history = await prisma.matchPlayer.findMany({
+        where: { playerId: playerId as string },
+        include: {
+          team: true,
+          match: {
+            include: {
+              sport: true,
+              court: true,
+              teamA: true,
+              teamB: true,
+            },
+          },
+        },
+        orderBy: [{ match: { endedAt: "desc" } }, { match: { startedAt: "desc" } }],
+      });
+
+      const matches = history.map((entry) => {
+        const isTeamA = entry.teamId === entry.match.teamAId;
+        const opponentTeam = isTeamA ? entry.match.teamB : entry.match.teamA;
+        const playerScore = isTeamA ? entry.match.scoreA : entry.match.scoreB;
+        const opponentScore = isTeamA ? entry.match.scoreB : entry.match.scoreA;
+        const result =
+          entry.match.winnerTeam === null
+            ? "draw"
+            : entry.match.winnerTeam === entry.teamId
+              ? "win"
+              : "loss";
+
+        return {
+          matchId: entry.matchId,
+          sport: entry.match.sport,
+          team: entry.team,
+          opponentTeam,
+          court: entry.match.court,
+          queuedAt: entry.match.queuedAt,
+          startedAt: entry.match.startedAt,
+          endedAt: entry.match.endedAt,
+          score: {
+            playerTeam: playerScore,
+            opponent: opponentScore,
+          },
+          result,
+        };
+      });
+
+      const summary = matches.reduce(
+        (accumulator, match) => {
+          accumulator.gamesPlayed += 1;
+          if (match.result === "win") accumulator.wins += 1;
+          if (match.result === "loss") accumulator.losses += 1;
+          if (match.result === "draw") accumulator.draws += 1;
+          return accumulator;
+        },
+        { gamesPlayed: 0, wins: 0, losses: 0, draws: 0 },
+      );
+
+      return response.status(200).json({
+        success: true,
+        player: {
+          id: player.id,
+          name: player.name,
+          sport: player.sport,
+        },
+        summary,
+        matches,
+      });
+    } catch (error: any) {
+      console.error(`Get player history failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Get player history failed",
+        error_message: error.message,
+      });
+    }
+  };
 }
 
 export default PlayerController;

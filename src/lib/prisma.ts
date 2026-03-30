@@ -13,7 +13,9 @@ const globalWithPrisma = globalThis as GlobalWithPrisma;
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-    throw new Error("DATABASE_URL is not set.");
+    throw new Error(
+        "DATABASE_URL is not set. Create a .env file in the project root and add a Postgres connection string, for example: DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/potatocontra?schema=public\""
+    );
 }
 
 const pool =
