@@ -31,6 +31,8 @@ const CourtCard = ({
   setEditCourtTeamBPlayerIds,
   setEditCourtError,
   isPlayersLoading,
+  courtScores,
+  setCourtScores,
 }) => {
   const currentMatch = court.currentMatch;
   const teamAPlayers =
@@ -55,6 +57,18 @@ const CourtCard = ({
     startingCourtId === court.id ||
     resettingCourtId === court.id ||
     endingCourtId === court.id;
+
+  const currentScores = courtScores[court.id] || { teamA: 0, teamB: 0 };
+
+  const updateScore = (team, value) => {
+    setCourtScores((prev) => ({
+      ...prev,
+      [court.id]: {
+        ...prev[court.id],
+        [team]: Math.max(0, value),
+      },
+    }));
+  };
 
   return (
     <div className="relative rounded border px-3 py-2 h-fit">
@@ -117,6 +131,62 @@ const CourtCard = ({
           )}
         </div>
       </div>
+
+      {currentMatch && currentMatch.startedAt ? (
+        <div className="mt-3 border-t pt-3">
+          <p className="mb-2 text-xs font-semibold">Score</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs">Team A</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateScore("teamA", currentScores.teamA - 1)}
+                  disabled={isBusy}
+                  className="border px-2 py-1 text-xs"
+                >
+                  -
+                </button>
+                <span className="w-6 text-center text-sm font-semibold">
+                  {currentScores.teamA}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => updateScore("teamA", currentScores.teamA + 1)}
+                  disabled={isBusy}
+                  className="border px-2 py-1 text-xs"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs">Team B</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateScore("teamB", currentScores.teamB - 1)}
+                  disabled={isBusy}
+                  className="border px-2 py-1 text-xs"
+                >
+                  -
+                </button>
+                <span className="w-6 text-center text-sm font-semibold">
+                  {currentScores.teamB}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => updateScore("teamB", currentScores.teamB + 1)}
+                  disabled={isBusy}
+                  className="border px-2 py-1 text-xs"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {currentMatch ? (
         <div className="mt-3 flex gap-2">

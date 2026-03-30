@@ -54,10 +54,37 @@ const Home = () => {
   const [editPlayerError, setEditPlayerError] = useState("");
   const [editCourtError, setEditCourtError] = useState("");
   const [playerMatchCounts, setPlayerMatchCounts] = useState({});
+  const [courtScores, setCourtScores] = useState({});
   const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
     courts,
     activeCourtMenuId,
   );
+
+  const getPlayersMatchCountAPI = async (sportId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:7007/api/players/matches-stats/${sportId}`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error("Failed to fetch player match counts");
+        return;
+      }
+
+      const countMap = {};
+      data.playerMatchCounts.forEach((item) => {
+        countMap[item.id] = item.matchesPlayed;
+      });
+      setPlayerMatchCounts(countMap);
+    } catch (fetchError) {
+      console.error("Player match count API failed", fetchError);
+    }
+  };
 
   useEffect(() => {
     if (!selectedSport) {
@@ -104,34 +131,6 @@ const Home = () => {
         setPlayersError("Unable to load players.");
       } finally {
         setIsPlayersLoading(false);
-      }
-    };
-
-    const getPlayersMatchCountAPI = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:7007/api/players/matches-stats/${selectedSport.id}`,
-          {
-            method: "GET",
-            credentials: "include",
-            signal: abortController.signal,
-          },
-        );
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          console.error("Failed to fetch player match counts");
-          return;
-        }
-
-        const countMap = {};
-        data.playerMatchCounts.forEach((item) => {
-          countMap[item.id] = item.matchesPlayed;
-        });
-        setPlayerMatchCounts(countMap);
-      } catch (fetchError) {
-        if (fetchError.name === "AbortError") return;
-        console.error("Player match count API failed", fetchError);
       }
     };
 
@@ -191,7 +190,7 @@ const Home = () => {
     setEditPlayerError("");
     setEditCourtError("");
     getPlayersAPI();
-    getPlayersMatchCountAPI();
+    getPlayersMatchCountAPI(selectedSport.id);
     getCourtsAPI();
 
     return () => {
@@ -607,6 +606,11 @@ const Home = () => {
             : court,
         ),
       );
+
+      setCourtScores((prevScores) => ({
+        ...prevScores,
+        [courtId]: { teamA: 0, teamB: 0 },
+      }));
     } catch (startCourtError) {
       console.error("Start court failed", startCourtError);
       setCourtsError(startCourtError.message ?? "Unable to start court.");
@@ -662,11 +666,20 @@ const Home = () => {
       setCourtsError("");
       setEditCourtError("");
 
+      const scores = courtScores[courtId] || { teamA: 0, teamB: 0 };
+
       const response = await fetch(
         `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/end`,
         {
           method: "PATCH",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            scoreA: scores.teamA,
+            scoreB: scores.teamB,
+          }),
         },
       );
       const data = await response.json();
@@ -683,12 +696,21 @@ const Home = () => {
         ),
       );
 
+      setCourtScores((prevScores) => {
+        const newScores = { ...prevScores };
+        delete newScores[courtId];
+        return newScores;
+      });
+
       if (activeCourtMenuId === courtId) {
         setActiveCourtMenuId(null);
         setEditCourtName("");
         setEditCourtTeamAPlayerIds([]);
         setEditCourtTeamBPlayerIds([]);
       }
+
+      // Refetch player match counts to show updated data immediately
+      await getPlayersMatchCountAPI(selectedSport.id);
     } catch (endCourtError) {
       console.error("End court failed", endCourtError);
       setCourtsError(endCourtError.message ?? "Unable to end court.");
@@ -760,6 +782,8 @@ const Home = () => {
           handleResetCourt={handleResetCourt}
           handleEndCourt={handleEndCourt}
           isPlayersLoading={isPlayersLoading}
+          courtScores={courtScores}
+          setCourtScores={setCourtScores}
         />
       </section>
 

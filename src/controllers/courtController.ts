@@ -245,6 +245,7 @@ class CourtController {
   static endCourt = async (request: Request, response: Response) => {
     try {
       const { sportId, courtId } = request.params;
+      const { scoreA, scoreB } = request.body ?? {};
 
       const [sportExist, courtExist] = await Promise.all([
         prisma.sport.findFirst({
@@ -297,11 +298,24 @@ class CourtController {
           message: "This court session has not started yet",
         });
 
+      // Determine winner based on scores
+      let winnerTeamId: string | null = null;
+      if (typeof scoreA === "number" && typeof scoreB === "number") {
+        if (scoreA > scoreB) {
+          winnerTeamId = activeMatch.teamA?.id ?? null;
+        } else if (scoreB > scoreA) {
+          winnerTeamId = activeMatch.teamB?.id ?? null;
+        }
+        // else it's a draw, winnerTeamId stays null
+      }
+
       const match = await prisma.match.update({
         where: { id: activeMatch.id },
         data: {
           endedAt: new Date(),
-          winnerTeam: null,
+          scoreA: typeof scoreA === "number" ? scoreA : 0,
+          scoreB: typeof scoreB === "number" ? scoreB : 0,
+          winnerTeam: winnerTeamId,
         },
         include: {
           teamA: true,

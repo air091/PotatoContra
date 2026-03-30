@@ -33,11 +33,15 @@ const CourtsPanel = ({
   handleResetCourt,
   handleEndCourt,
   isPlayersLoading,
+  courtScores,
+  setCourtScores,
 }) => {
   const [timerNow, setTimerNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const hasStartedMatch = courts.some((court) => !!court.currentMatch?.startedAt);
+    const hasStartedMatch = courts.some(
+      (court) => !!court.currentMatch?.startedAt,
+    );
 
     if (!hasStartedMatch) return undefined;
 
@@ -123,6 +127,8 @@ const CourtsPanel = ({
               setEditCourtTeamBPlayerIds={setEditCourtTeamBPlayerIds}
               setEditCourtError={setEditCourtError}
               isPlayersLoading={isPlayersLoading}
+              courtScores={courtScores}
+              setCourtScores={setCourtScores}
             />
           ))}
 
