@@ -4,6 +4,25 @@ import AddPlayerModal from "../components/home_components/AddPlayerModal";
 import PlayersPanel from "../components/home_components/PlayersPanel";
 import CourtsPanel from "../components/home_components/CourtsPanel";
 
+const getTeamPlayerIds = (currentMatch, teamId) =>
+  currentMatch?.matchPlayers
+    ?.filter((matchPlayer) => matchPlayer.teamId === teamId)
+    .map((matchPlayer) => matchPlayer.playerId) ?? [];
+
+const getAssignedPlayerCourtMap = (courts, excludedCourtId = null) => {
+  const assignedPlayerCourtMap = new Map();
+
+  courts.forEach((court) => {
+    if (court.id === excludedCourtId || !court.currentMatch) return;
+
+    court.currentMatch.matchPlayers?.forEach((matchPlayer) => {
+      assignedPlayerCourtMap.set(matchPlayer.playerId, court.name);
+    });
+  });
+
+  return assignedPlayerCourtMap;
+};
+
 const Home = () => {
   const { sports, isLoading, error, selectedSport } = useOutletContext();
   const [players, setPlayers] = useState([]);
@@ -34,6 +53,10 @@ const Home = () => {
   const [deletingPlayerId, setDeletingPlayerId] = useState(null);
   const [editPlayerError, setEditPlayerError] = useState("");
   const [editCourtError, setEditCourtError] = useState("");
+  const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
+    courts,
+    activeCourtMenuId,
+  );
 
   useEffect(() => {
     if (!selectedSport) {
@@ -166,14 +189,8 @@ const Home = () => {
 
   const openCourtMenu = (court) => {
     const currentMatch = court.currentMatch;
-    const teamAPlayerIds =
-      currentMatch?.matchPlayers
-        ?.filter((matchPlayer) => matchPlayer.teamId === currentMatch.teamAId)
-        .map((matchPlayer) => matchPlayer.playerId) ?? [];
-    const teamBPlayerIds =
-      currentMatch?.matchPlayers
-        ?.filter((matchPlayer) => matchPlayer.teamId === currentMatch.teamBId)
-        .map((matchPlayer) => matchPlayer.playerId) ?? [];
+    const teamAPlayerIds = getTeamPlayerIds(currentMatch, currentMatch?.teamAId);
+    const teamBPlayerIds = getTeamPlayerIds(currentMatch, currentMatch?.teamBId);
 
     setActiveCourtMenuId((currentMenuId) =>
       currentMenuId === court.id ? null : court.id,
@@ -185,6 +202,13 @@ const Home = () => {
   };
 
   const toggleCourtPlayer = (teamKey, playerId) => {
+    const assignedCourtName = unavailablePlayerCourtMap.get(playerId);
+
+    if (assignedCourtName) {
+      setEditCourtError(`This player is already assigned to ${assignedCourtName}.`);
+      return;
+    }
+
     setEditCourtError("");
 
     if (teamKey === "A") {
@@ -440,8 +464,29 @@ const Home = () => {
     event.preventDefault();
 
     const trimmedCourtName = editCourtName.trim();
+    const requestedPlayerIds = [
+      ...editCourtTeamAPlayerIds,
+      ...editCourtTeamBPlayerIds,
+    ];
+
     if (!trimmedCourtName) {
       setEditCourtError("Court name is required.");
+      return;
+    }
+
+    const conflictingPlayerId = requestedPlayerIds.find((playerId) =>
+      unavailablePlayerCourtMap.has(playerId),
+    );
+
+    if (conflictingPlayerId) {
+      const conflictingPlayer = players.find(
+        (player) => player.id === conflictingPlayerId,
+      );
+      const assignedCourtName = unavailablePlayerCourtMap.get(conflictingPlayerId);
+
+      setEditCourtError(
+        `${conflictingPlayer?.name ?? "This player"} is already assigned to ${assignedCourtName}.`,
+      );
       return;
     }
 
@@ -659,6 +704,7 @@ const Home = () => {
             editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
             editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
             players={players}
+            unavailablePlayerCourtMap={unavailablePlayerCourtMap}
             toggleCourtPlayer={toggleCourtPlayer}
             editCourtError={editCourtError}
             handleDeleteCourt={handleDeleteCourt}

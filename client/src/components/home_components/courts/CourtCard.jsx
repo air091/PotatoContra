@@ -12,6 +12,7 @@ const CourtCard = ({
   editCourtTeamAPlayerIds,
   editCourtTeamBPlayerIds,
   players,
+  unavailablePlayerCourtMap,
   toggleCourtPlayer,
   editCourtError,
   handleDeleteCourt,
@@ -172,6 +173,7 @@ const CourtCard = ({
           players={players}
           editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
           editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
+          unavailablePlayerCourtMap={unavailablePlayerCourtMap}
           toggleCourtPlayer={toggleCourtPlayer}
           editCourtError={editCourtError}
           setActiveCourtMenuId={setActiveCourtMenuId}

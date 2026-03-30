@@ -550,6 +550,31 @@ class CourtController {
           message: "One or more players were not found for this sport",
         });
 
+      const conflictingMatchPlayer = await prisma.matchPlayer.findFirst({
+        where: {
+          playerId: { in: requestedPlayerIds },
+          match: {
+            sportId: sportId as string,
+            endedAt: null,
+            courtId: { not: courtId as string },
+          },
+        },
+        include: {
+          player: true,
+          match: {
+            include: {
+              court: true,
+            },
+          },
+        },
+      });
+
+      if (conflictingMatchPlayer)
+        return response.status(409).json({
+          success: false,
+          message: `${conflictingMatchPlayer.player.name} is already assigned to ${conflictingMatchPlayer.match.court?.name ?? "another court"}`,
+        });
+
       const existingMatch = await prisma.match.findFirst({
         where: {
           sportId: sportId as string,

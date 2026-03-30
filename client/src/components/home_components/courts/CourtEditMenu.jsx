@@ -6,6 +6,7 @@ const CourtEditMenu = ({
   players,
   editCourtTeamAPlayerIds,
   editCourtTeamBPlayerIds,
+  unavailablePlayerCourtMap,
   toggleCourtPlayer,
   editCourtError,
   setActiveCourtMenuId,
@@ -50,70 +51,96 @@ const CourtEditMenu = ({
           <div>
             <p className="mb-2 text-xs font-semibold">Team A</p>
             <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
-              {players.map((player) => (
-                <label
-                  key={`${court.id}-team-a-option-${player.id}`}
-                  className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
-                    editCourtTeamAPlayerIds.includes(player.id)
-                      ? "border bg-stone-100"
-                      : editCourtTeamBPlayerIds.includes(player.id)
-                        ? "border border-stone-300"
-                        : ""
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={editCourtTeamAPlayerIds.includes(player.id)}
-                      onChange={() => toggleCourtPlayer("A", player.id)}
-                      disabled={isBusy || isPlayersLoading}
-                    />
-                    <span>{player.name}</span>
-                  </span>
-                  {editCourtTeamAPlayerIds.includes(player.id) ? (
-                    <span className="border px-1 py-0.5 text-[10px]">Team A</span>
-                  ) : null}
-                  {!editCourtTeamAPlayerIds.includes(player.id) &&
-                  editCourtTeamBPlayerIds.includes(player.id) ? (
-                    <span className="border px-1 py-0.5 text-[10px]">Team B</span>
-                  ) : null}
-                </label>
-              ))}
+              {players.map((player) => {
+                const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
+                const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
+                const assignedCourtName = unavailablePlayerCourtMap.get(player.id);
+                const isUnavailable = !!assignedCourtName;
+
+                return (
+                  <label
+                    key={`${court.id}-team-a-option-${player.id}`}
+                    className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
+                      isOnTeamA
+                        ? "border bg-stone-100"
+                        : isOnTeamB
+                          ? "border border-stone-300"
+                          : isUnavailable
+                            ? "border border-stone-200 bg-stone-50 text-stone-400"
+                            : ""
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isOnTeamA}
+                        onChange={() => toggleCourtPlayer("A", player.id)}
+                        disabled={isBusy || isPlayersLoading || isUnavailable}
+                      />
+                      <span>{player.name}</span>
+                    </span>
+                    {isOnTeamA ? (
+                      <span className="border px-1 py-0.5 text-[10px]">Team A</span>
+                    ) : null}
+                    {!isOnTeamA && isOnTeamB ? (
+                      <span className="border px-1 py-0.5 text-[10px]">Team B</span>
+                    ) : null}
+                    {!isOnTeamA && !isOnTeamB && isUnavailable ? (
+                      <span className="border px-1 py-0.5 text-[10px]">
+                        On {assignedCourtName}
+                      </span>
+                    ) : null}
+                  </label>
+                );
+              })}
             </div>
           </div>
 
           <div>
             <p className="mb-2 text-xs font-semibold">Team B</p>
             <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
-              {players.map((player) => (
-                <label
-                  key={`${court.id}-team-b-option-${player.id}`}
-                  className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
-                    editCourtTeamBPlayerIds.includes(player.id)
-                      ? "border bg-stone-100"
-                      : editCourtTeamAPlayerIds.includes(player.id)
-                        ? "border border-stone-300"
-                        : ""
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={editCourtTeamBPlayerIds.includes(player.id)}
-                      onChange={() => toggleCourtPlayer("B", player.id)}
-                      disabled={isBusy || isPlayersLoading}
-                    />
-                    <span>{player.name}</span>
-                  </span>
-                  {editCourtTeamBPlayerIds.includes(player.id) ? (
-                    <span className="border px-1 py-0.5 text-[10px]">Team B</span>
-                  ) : null}
-                  {!editCourtTeamBPlayerIds.includes(player.id) &&
-                  editCourtTeamAPlayerIds.includes(player.id) ? (
-                    <span className="border px-1 py-0.5 text-[10px]">Team A</span>
-                  ) : null}
-                </label>
-              ))}
+              {players.map((player) => {
+                const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
+                const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
+                const assignedCourtName = unavailablePlayerCourtMap.get(player.id);
+                const isUnavailable = !!assignedCourtName;
+
+                return (
+                  <label
+                    key={`${court.id}-team-b-option-${player.id}`}
+                    className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
+                      isOnTeamB
+                        ? "border bg-stone-100"
+                        : isOnTeamA
+                          ? "border border-stone-300"
+                          : isUnavailable
+                            ? "border border-stone-200 bg-stone-50 text-stone-400"
+                            : ""
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isOnTeamB}
+                        onChange={() => toggleCourtPlayer("B", player.id)}
+                        disabled={isBusy || isPlayersLoading || isUnavailable}
+                      />
+                      <span>{player.name}</span>
+                    </span>
+                    {isOnTeamB ? (
+                      <span className="border px-1 py-0.5 text-[10px]">Team B</span>
+                    ) : null}
+                    {!isOnTeamB && isOnTeamA ? (
+                      <span className="border px-1 py-0.5 text-[10px]">Team A</span>
+                    ) : null}
+                    {!isOnTeamA && !isOnTeamB && isUnavailable ? (
+                      <span className="border px-1 py-0.5 text-[10px]">
+                        On {assignedCourtName}
+                      </span>
+                    ) : null}
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>

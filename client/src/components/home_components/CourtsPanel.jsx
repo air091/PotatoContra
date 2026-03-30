@@ -24,6 +24,7 @@ const CourtsPanel = ({
   editCourtTeamAPlayerIds,
   editCourtTeamBPlayerIds,
   players,
+  unavailablePlayerCourtMap,
   toggleCourtPlayer,
   editCourtError,
   handleDeleteCourt,
@@ -103,6 +104,7 @@ const CourtsPanel = ({
               editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
               editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
               players={players}
+              unavailablePlayerCourtMap={unavailablePlayerCourtMap}
               toggleCourtPlayer={toggleCourtPlayer}
               editCourtError={editCourtError}
               handleDeleteCourt={handleDeleteCourt}
