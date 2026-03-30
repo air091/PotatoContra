@@ -140,7 +140,7 @@ const CourtsPanel = ({
 
               {activeCourtMenuId === court.id ? (
                 <div
-                  className="absolute right-0 top-8 z-10 w-72 border bg-white p-3"
+                  className="absolute right-0 top-8 z-10 w-md border bg-white p-3"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <form onSubmit={handleEditCourt} className="space-y-3">
@@ -158,26 +158,45 @@ const CourtsPanel = ({
                       />
                     </label>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 border-2 border-red-500">
                       <div>
                         <p className="mb-2 text-xs font-semibold">Team A</p>
                         <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
                           {players.map((player) => (
                             <label
                               key={`${court.id}-team-a-option-${player.id}`}
-                              className="flex items-center gap-2 text-xs"
+                              className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
+                                editCourtTeamAPlayerIds.includes(player.id)
+                                  ? "border bg-stone-100"
+                                  : editCourtTeamBPlayerIds.includes(player.id)
+                                    ? "border border-stone-300"
+                                    : ""
+                              }`}
                             >
-                              <input
-                                type="checkbox"
-                                checked={editCourtTeamAPlayerIds.includes(player.id)}
-                                onChange={() => toggleCourtPlayer("A", player.id)}
-                                disabled={
-                                  isUpdatingCourt ||
-                                  deletingCourtId === court.id ||
-                                  isPlayersLoading
-                                }
-                              />
-                              <span>{player.name}</span>
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editCourtTeamAPlayerIds.includes(player.id)}
+                                  onChange={() => toggleCourtPlayer("A", player.id)}
+                                  disabled={
+                                    isUpdatingCourt ||
+                                    deletingCourtId === court.id ||
+                                    isPlayersLoading
+                                  }
+                                />
+                                <span>{player.name}</span>
+                              </span>
+                              {editCourtTeamAPlayerIds.includes(player.id) ? (
+                                <span className="border px-1 py-0.5 text-[10px]">
+                                  Team A
+                                </span>
+                              ) : null}
+                              {!editCourtTeamAPlayerIds.includes(player.id) &&
+                              editCourtTeamBPlayerIds.includes(player.id) ? (
+                                <span className="border px-1 py-0.5 text-[10px]">
+                                  Team B
+                                </span>
+                              ) : null}
                             </label>
                           ))}
                         </div>
@@ -189,19 +208,38 @@ const CourtsPanel = ({
                           {players.map((player) => (
                             <label
                               key={`${court.id}-team-b-option-${player.id}`}
-                              className="flex items-center gap-2 text-xs"
+                              className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
+                                editCourtTeamBPlayerIds.includes(player.id)
+                                  ? "border bg-stone-100"
+                                  : editCourtTeamAPlayerIds.includes(player.id)
+                                    ? "border border-stone-300"
+                                    : ""
+                              }`}
                             >
-                              <input
-                                type="checkbox"
-                                checked={editCourtTeamBPlayerIds.includes(player.id)}
-                                onChange={() => toggleCourtPlayer("B", player.id)}
-                                disabled={
-                                  isUpdatingCourt ||
-                                  deletingCourtId === court.id ||
-                                  isPlayersLoading
-                                }
-                              />
-                              <span>{player.name}</span>
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editCourtTeamBPlayerIds.includes(player.id)}
+                                  onChange={() => toggleCourtPlayer("B", player.id)}
+                                  disabled={
+                                    isUpdatingCourt ||
+                                    deletingCourtId === court.id ||
+                                    isPlayersLoading
+                                  }
+                                />
+                                <span>{player.name}</span>
+                              </span>
+                              {editCourtTeamBPlayerIds.includes(player.id) ? (
+                                <span className="border px-1 py-0.5 text-[10px]">
+                                  Team B
+                                </span>
+                              ) : null}
+                              {!editCourtTeamBPlayerIds.includes(player.id) &&
+                              editCourtTeamAPlayerIds.includes(player.id) ? (
+                                <span className="border px-1 py-0.5 text-[10px]">
+                                  Team A
+                                </span>
+                              ) : null}
                             </label>
                           ))}
                         </div>
