@@ -208,23 +208,40 @@ class CourtController {
           message: "This court session has already started and must be ended",
         });
 
-      const match = await prisma.match.update({
-        where: { id: activeMatch.id },
-        data: {
-          endedAt: new Date(),
-          winnerTeam: null,
-        },
-        include: {
-          teamA: true,
-          teamB: true,
-          court: true,
-          matchPlayers: {
-            include: {
-              player: true,
-              team: true,
+      const match = await prisma.$transaction(async (transaction) => {
+        const updatedMatch = await transaction.match.update({
+          where: { id: activeMatch.id },
+          data: {
+            endedAt: new Date(),
+            winnerTeam: null,
+          },
+          include: {
+            teamA: true,
+            teamB: true,
+            court: true,
+            matchPlayers: {
+              include: {
+                player: true,
+                team: true,
+              },
             },
           },
-        },
+        });
+
+        await Promise.all([
+          activeMatch.teamAId
+            ? transaction.teamPlayer.deleteMany({
+                where: { teamId: activeMatch.teamAId },
+              })
+            : Promise.resolve(),
+          activeMatch.teamBId
+            ? transaction.teamPlayer.deleteMany({
+                where: { teamId: activeMatch.teamBId },
+              })
+            : Promise.resolve(),
+        ]);
+
+        return updatedMatch;
       });
 
       return response.status(200).json({
@@ -309,25 +326,42 @@ class CourtController {
         // else it's a draw, winnerTeamId stays null
       }
 
-      const match = await prisma.match.update({
-        where: { id: activeMatch.id },
-        data: {
-          endedAt: new Date(),
-          scoreA: typeof scoreA === "number" ? scoreA : 0,
-          scoreB: typeof scoreB === "number" ? scoreB : 0,
-          winnerTeam: winnerTeamId,
-        },
-        include: {
-          teamA: true,
-          teamB: true,
-          court: true,
-          matchPlayers: {
-            include: {
-              player: true,
-              team: true,
+      const match = await prisma.$transaction(async (transaction) => {
+        const updatedMatch = await transaction.match.update({
+          where: { id: activeMatch.id },
+          data: {
+            endedAt: new Date(),
+            scoreA: typeof scoreA === "number" ? scoreA : 0,
+            scoreB: typeof scoreB === "number" ? scoreB : 0,
+            winnerTeam: winnerTeamId,
+          },
+          include: {
+            teamA: true,
+            teamB: true,
+            court: true,
+            matchPlayers: {
+              include: {
+                player: true,
+                team: true,
+              },
             },
           },
-        },
+        });
+
+        await Promise.all([
+          activeMatch.teamAId
+            ? transaction.teamPlayer.deleteMany({
+                where: { teamId: activeMatch.teamAId },
+              })
+            : Promise.resolve(),
+          activeMatch.teamBId
+            ? transaction.teamPlayer.deleteMany({
+                where: { teamId: activeMatch.teamBId },
+              })
+            : Promise.resolve(),
+        ]);
+
+        return updatedMatch;
       });
 
       return response.status(200).json({

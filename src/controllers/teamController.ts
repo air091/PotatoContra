@@ -42,12 +42,11 @@ class TeamController {
           .json({ success: false, message: "Sport not found" });
 
       const teams = await prisma.team.findMany({
+        where: { sportId: sportId as string },
         include: { teamPlayers: true, teamAMatches: true, teamBMatches: true },
       });
       if (teams.length === 0)
-        return response
-          .status(404)
-          .json({ success: false, message: "No teams" });
+        return response.status(200).json({ success: true, teams: [] });
 
       return response.status(200).json({ success: true, teams });
     } catch (error: any) {

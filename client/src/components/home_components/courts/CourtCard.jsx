@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import CourtEditMenu from "./CourtEditMenu";
 import formatElapsedTime from "./formatElapsedTime";
@@ -31,9 +32,9 @@ const CourtCard = ({
   setEditCourtTeamBPlayerIds,
   setEditCourtError,
   isPlayersLoading,
-  courtScores,
-  setCourtScores,
+  setCourts,
 }) => {
+  const [isUpdatingScore, setIsUpdatingScore] = useState(false);
   const currentMatch = court.currentMatch;
   const teamAPlayers =
     currentMatch?.matchPlayers?.filter(
@@ -56,18 +57,49 @@ const CourtCard = ({
     deletingCourtId === court.id ||
     startingCourtId === court.id ||
     resettingCourtId === court.id ||
-    endingCourtId === court.id;
+    endingCourtId === court.id ||
+    isUpdatingScore;
 
-  const currentScores = courtScores[court.id] || { teamA: 0, teamB: 0 };
+  const updateScore = async (team, value) => {
+    if (!currentMatch) return;
 
-  const updateScore = (team, value) => {
-    setCourtScores((prev) => ({
-      ...prev,
-      [court.id]: {
-        ...prev[court.id],
-        [team]: Math.max(0, value),
-      },
-    }));
+    const newScore = Math.max(0, value);
+    setIsUpdatingScore(true);
+
+    try {
+      const scoreData =
+        team === "teamA" ? { scoreA: newScore } : { scoreB: newScore };
+
+      const response = await fetch(
+        `http://localhost:7007/api/matches/${currentMatch.id}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(scoreData),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error("Failed to update score:", data?.message);
+        return;
+      }
+
+      // Update the courts state with the updated match
+      setCourts((prevCourts) =>
+        prevCourts.map((c) =>
+          c.id === court.id ? { ...c, currentMatch: data.match } : c,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating score:", error);
+    } finally {
+      setIsUpdatingScore(false);
+    }
   };
 
   return (
@@ -141,18 +173,18 @@ const CourtCard = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => updateScore("teamA", currentScores.teamA - 1)}
+                  onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
                   disabled={isBusy}
                   className="border px-2 py-1 text-xs"
                 >
                   -
                 </button>
                 <span className="w-6 text-center text-sm font-semibold">
-                  {currentScores.teamA}
+                  {currentMatch.scoreA}
                 </span>
                 <button
                   type="button"
-                  onClick={() => updateScore("teamA", currentScores.teamA + 1)}
+                  onClick={() => updateScore("teamA", currentMatch.scoreA + 1)}
                   disabled={isBusy}
                   className="border px-2 py-1 text-xs"
                 >
@@ -165,18 +197,18 @@ const CourtCard = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => updateScore("teamB", currentScores.teamB - 1)}
+                  onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
                   disabled={isBusy}
                   className="border px-2 py-1 text-xs"
                 >
                   -
                 </button>
                 <span className="w-6 text-center text-sm font-semibold">
-                  {currentScores.teamB}
+                  {currentMatch.scoreB}
                 </span>
                 <button
                   type="button"
-                  onClick={() => updateScore("teamB", currentScores.teamB + 1)}
+                  onClick={() => updateScore("teamB", currentMatch.scoreB + 1)}
                   disabled={isBusy}
                   className="border px-2 py-1 text-xs"
                 >

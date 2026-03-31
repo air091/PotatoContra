@@ -23,6 +23,39 @@ const getAssignedPlayerCourtMap = (courts, excludedCourtId = null) => {
   return assignedPlayerCourtMap;
 };
 
+const createQueue = (selectedCourtId = null) => ({
+  id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  matchId: null,
+  teamAId: null,
+  teamBId: null,
+  teamAPlayerIds: [],
+  teamBPlayerIds: [],
+  queuedAt: null,
+  selectedCourtId,
+  isSubmitting: false,
+  error: "",
+});
+
+const mapMatchToQueue = (match, availableCourts) => ({
+  id: `match-${match.id}`,
+  matchId: match.id,
+  teamAId: match.teamAId,
+  teamBId: match.teamBId,
+  teamAPlayerIds:
+    match.matchPlayers
+      ?.filter((matchPlayer) => matchPlayer.teamId === match.teamAId)
+      .map((matchPlayer) => matchPlayer.playerId) ?? [],
+  teamBPlayerIds:
+    match.matchPlayers
+      ?.filter((matchPlayer) => matchPlayer.teamId === match.teamBId)
+      .map((matchPlayer) => matchPlayer.playerId) ?? [],
+  queuedAt: match.queuedAt ?? new Date().toISOString(),
+  selectedCourtId:
+    availableCourts.length > 0 ? String(availableCourts[0].id) : null,
+  isSubmitting: false,
+  error: "",
+});
+
 const Home = () => {
   const { sports, isLoading, error, selectedSport } = useOutletContext();
   const [players, setPlayers] = useState([]);
@@ -54,10 +87,13 @@ const Home = () => {
   const [editPlayerError, setEditPlayerError] = useState("");
   const [editCourtError, setEditCourtError] = useState("");
   const [playerMatchCounts, setPlayerMatchCounts] = useState({});
-  const [courtScores, setCourtScores] = useState({});
+  const [queues, setQueues] = useState([]);
   const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
     courts,
     activeCourtMenuId,
+  );
+  const availableCourts = courts.filter(
+    (court) => !court.currentMatch || court.currentMatch.endedAt,
   );
 
   const getPlayersMatchCountAPI = async (sportId) => {
@@ -151,23 +187,61 @@ const Home = () => {
 
         if (response.status === 404) {
           setCourts([]);
-          return;
+          return [];
         }
 
         if (!response.ok || !data.success) {
           throw new Error(data?.message ?? "Courts API failed");
         }
 
-        setCourts(
-          data.courts.filter((court) => court.sportId === selectedSport.id),
+        const nextCourts = data.courts.filter(
+          (court) => court.sportId === selectedSport.id,
         );
+        setCourts(nextCourts);
+        return nextCourts;
       } catch (fetchError) {
         if (fetchError.name === "AbortError") return;
 
         console.error("Courts API failed", fetchError);
         setCourtsError("Unable to load courts.");
+        return [];
       } finally {
         setIsCourtsLoading(false);
+      }
+    };
+
+    const getQueuedMatchesAPI = async (loadedCourts = []) => {
+      try {
+        const response = await fetch(
+          `http://localhost:7007/api/matches/sports/${selectedSport.id}`,
+          {
+            method: "GET",
+            credentials: "include",
+            signal: abortController.signal,
+          },
+        );
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data?.message ?? "Matches API failed");
+        }
+
+        const availableLoadedCourts = loadedCourts.filter(
+          (court) => !court.currentMatch || court.currentMatch.endedAt,
+        );
+
+        setQueues(
+          data.matches
+            .filter(
+              (match) => !match.startedAt && !match.endedAt && !match.courtId,
+            )
+            .map((match) => mapMatchToQueue(match, availableLoadedCourts)),
+        );
+      } catch (fetchError) {
+        if (fetchError.name === "AbortError") return;
+
+        console.error("Matches API failed", fetchError);
+        setQueues([]);
       }
     };
 
@@ -187,16 +261,51 @@ const Home = () => {
     setStartingCourtId(null);
     setResettingCourtId(null);
     setEndingCourtId(null);
+    setQueues([]);
     setEditPlayerError("");
     setEditCourtError("");
     getPlayersAPI();
     getPlayersMatchCountAPI(selectedSport.id);
-    getCourtsAPI();
+
+    (async () => {
+      const loadedCourts = await getCourtsAPI();
+      await getQueuedMatchesAPI(loadedCourts ?? []);
+    })();
 
     return () => {
       abortController.abort();
     };
   }, [selectedSport]);
+
+  useEffect(() => {
+    setQueues((currentQueues) => {
+      let hasChanges = false;
+
+      const nextQueues = currentQueues.map((queue) => {
+        const nextSelectedCourtId =
+          availableCourts.length === 0
+            ? null
+            : availableCourts.some(
+                  (court) => String(court.id) === queue.selectedCourtId,
+                )
+              ? queue.selectedCourtId
+              : String(availableCourts[0].id);
+
+        if (nextSelectedCourtId === queue.selectedCourtId) {
+          return queue;
+        }
+
+        hasChanges = true;
+
+        return {
+          ...queue,
+          selectedCourtId: nextSelectedCourtId,
+        };
+      });
+
+      return hasChanges ? nextQueues : currentQueues;
+    });
+  }, [courts]);
 
   const closeAddPlayerModal = () => {
     if (isSubmitting) return;
@@ -606,11 +715,6 @@ const Home = () => {
             : court,
         ),
       );
-
-      setCourtScores((prevScores) => ({
-        ...prevScores,
-        [courtId]: { teamA: 0, teamB: 0 },
-      }));
     } catch (startCourtError) {
       console.error("Start court failed", startCourtError);
       setCourtsError(startCourtError.message ?? "Unable to start court.");
@@ -666,7 +770,9 @@ const Home = () => {
       setCourtsError("");
       setEditCourtError("");
 
-      const scores = courtScores[courtId] || { teamA: 0, teamB: 0 };
+      const court = courts.find((c) => c.id === courtId);
+      const scoreA = court?.currentMatch?.scoreA ?? 0;
+      const scoreB = court?.currentMatch?.scoreB ?? 0;
 
       const response = await fetch(
         `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/end`,
@@ -677,8 +783,8 @@ const Home = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            scoreA: scores.teamA,
-            scoreB: scores.teamB,
+            scoreA,
+            scoreB,
           }),
         },
       );
@@ -696,12 +802,6 @@ const Home = () => {
         ),
       );
 
-      setCourtScores((prevScores) => {
-        const newScores = { ...prevScores };
-        delete newScores[courtId];
-        return newScores;
-      });
-
       if (activeCourtMenuId === courtId) {
         setActiveCourtMenuId(null);
         setEditCourtName("");
@@ -716,6 +816,479 @@ const Home = () => {
       setCourtsError(endCourtError.message ?? "Unable to end court.");
     } finally {
       setEndingCourtId(null);
+    }
+  };
+
+  const handleAddQueue = () => {
+    setQueues((currentQueues) => [
+      ...currentQueues,
+      createQueue(
+        availableCourts.length > 0 ? String(availableCourts[0].id) : null,
+      ),
+    ]);
+  };
+
+  const deleteQueueRecord = async (queue, shouldKeepQueueOnError = false) => {
+    if (!queue.matchId) {
+      if (!shouldKeepQueueOnError) {
+        setQueues((currentQueues) =>
+          currentQueues.filter((currentQueue) => currentQueue.id !== queue.id),
+        );
+      }
+      return;
+    }
+
+    const deleteMatchResponse = await fetch(
+      `http://localhost:7007/api/matches/${queue.matchId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      },
+    );
+
+    if (!deleteMatchResponse.ok && deleteMatchResponse.status !== 204) {
+      const errorData = await deleteMatchResponse.json();
+      throw new Error(errorData?.message ?? "Failed to delete queued match");
+    }
+
+    if (queue.teamAId) {
+      const teamADeleteResponse = await fetch(
+        `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ teamId: queue.teamAId }),
+        },
+      );
+
+      if (!teamADeleteResponse.ok && teamADeleteResponse.status !== 204) {
+        const errorData = await teamADeleteResponse.json();
+        throw new Error(errorData?.message ?? "Failed to delete Team A");
+      }
+    }
+
+    if (queue.teamBId) {
+      const teamBDeleteResponse = await fetch(
+        `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ teamId: queue.teamBId }),
+        },
+      );
+
+      if (!teamBDeleteResponse.ok && teamBDeleteResponse.status !== 204) {
+        const errorData = await teamBDeleteResponse.json();
+        throw new Error(errorData?.message ?? "Failed to delete Team B");
+      }
+    }
+  };
+
+  const removePlayersFromCurrentTeams = async (playerIds) => {
+    const teamsResponse = await fetch(
+      `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
+      {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const teamsData = await teamsResponse.json();
+    const allTeams = teamsData.success ? teamsData.teams : [];
+
+    for (const playerId of playerIds) {
+      const currentTeams = allTeams.filter((team) =>
+        team.teamPlayers.some((tp) => tp.playerId === playerId),
+      );
+
+      for (const currentTeam of currentTeams) {
+        const removeResponse = await fetch(
+          `http://localhost:7007/api/teams/players/sports/${selectedSport.id}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              teamId: currentTeam.id,
+              playerId,
+            }),
+          },
+        );
+
+        if (!removeResponse.ok) {
+          const errorData =
+            removeResponse.status === 204 ? {} : await removeResponse.json();
+          throw new Error(
+            errorData?.message ??
+              `Failed to remove player from current team: ${removeResponse.status}`,
+          );
+        }
+      }
+    }
+  };
+
+  const handleDeleteQueue = async (queueId) => {
+    const queue = queues.find((currentQueue) => currentQueue.id === queueId);
+
+    if (!queue) return;
+
+    try {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, isSubmitting: true, error: "" }
+            : currentQueue,
+        ),
+      );
+
+      await deleteQueueRecord(queue);
+
+      setQueues((currentQueues) =>
+        currentQueues.filter((currentQueue) => currentQueue.id !== queueId),
+      );
+    } catch (error) {
+      console.error("Cancel queue failed", error);
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                isSubmitting: false,
+                error: error.message ?? "Unable to cancel queue",
+              }
+            : currentQueue,
+        ),
+      );
+    }
+  };
+
+  const handleSaveQueue = async (
+    queueId,
+    { teamAPlayerIds, teamBPlayerIds, selectedCourtId },
+  ) => {
+    const queue = queues.find((currentQueue) => currentQueue.id === queueId);
+
+    if (!queue) return false;
+
+    if (teamAPlayerIds.length === 0 || teamBPlayerIds.length === 0) {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, error: "Both teams need at least 1 player" }
+            : currentQueue,
+        ),
+      );
+      return false;
+    }
+
+    try {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, isSubmitting: true, error: "" }
+            : currentQueue,
+        ),
+      );
+
+      const nextQueuedAt = queue.queuedAt ?? new Date().toISOString();
+
+      if (queue.matchId || queue.teamAId || queue.teamBId) {
+        await deleteQueueRecord(queue, true);
+      }
+
+      await removePlayersFromCurrentTeams([
+        ...teamAPlayerIds,
+        ...teamBPlayerIds,
+      ]);
+
+      const teamAResponse = await fetch(
+        `http://localhost:7007/api/teams/add/sports/${selectedSport.id}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      const teamAData = await teamAResponse.json();
+      if (!teamAResponse.ok || !teamAData.success) {
+        throw new Error(teamAData?.message ?? "Failed to create Team A");
+      }
+
+      for (const playerId of teamAPlayerIds) {
+        const addPlayerResponse = await fetch(
+          `http://localhost:7007/api/teams/add/players/sports/${selectedSport.id}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              teamId: teamAData.team.id,
+              playerId,
+            }),
+          },
+        );
+
+        if (!addPlayerResponse.ok) {
+          const errorData = await addPlayerResponse.json();
+          throw new Error(
+            errorData?.message ??
+              `Failed to add player to Team A: ${addPlayerResponse.status}`,
+          );
+        }
+      }
+
+      const teamBResponse = await fetch(
+        `http://localhost:7007/api/teams/add/sports/${selectedSport.id}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      const teamBData = await teamBResponse.json();
+      if (!teamBResponse.ok || !teamBData.success) {
+        throw new Error(teamBData?.message ?? "Failed to create Team B");
+      }
+
+      for (const playerId of teamBPlayerIds) {
+        const addPlayerResponse = await fetch(
+          `http://localhost:7007/api/teams/add/players/sports/${selectedSport.id}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              teamId: teamBData.team.id,
+              playerId,
+            }),
+          },
+        );
+
+        if (!addPlayerResponse.ok) {
+          const errorData = await addPlayerResponse.json();
+          throw new Error(
+            errorData?.message ??
+              `Failed to add player to Team B: ${addPlayerResponse.status}`,
+          );
+        }
+      }
+
+      const matchResponse = await fetch(
+        `http://localhost:7007/api/matches/sports/${selectedSport.id}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            teamAId: teamAData.team.id,
+            teamBId: teamBData.team.id,
+            queuedAt: nextQueuedAt,
+          }),
+        },
+      );
+
+      const matchData = await matchResponse.json();
+
+      if (!matchResponse.ok || !matchData.success) {
+        throw new Error(matchData?.message ?? "Failed to create queued match");
+      }
+
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                matchId: matchData.match.id,
+                teamAId: teamAData.team.id,
+                teamBId: teamBData.team.id,
+                teamAPlayerIds,
+                teamBPlayerIds,
+                selectedCourtId,
+                queuedAt: matchData.match.queuedAt ?? nextQueuedAt,
+                isSubmitting: false,
+                error: "",
+              }
+            : currentQueue,
+        ),
+      );
+      return true;
+    } catch (error) {
+      console.error("Save queue failed", error);
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                isSubmitting: false,
+                error: error.message ?? "Unable to save queue",
+              }
+            : currentQueue,
+        ),
+      );
+      return false;
+    }
+  };
+
+  const handleLaunchQueuedMatch = async (queueId) => {
+    const queue = queues.find((currentQueue) => currentQueue.id === queueId);
+
+    if (!queue) return;
+
+    if (!queue.queuedAt || !queue.matchId || !queue.teamAId || !queue.teamBId) {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, error: "Queue the teams first." }
+            : currentQueue,
+        ),
+      );
+      return;
+    }
+
+    if (queue.teamAPlayerIds.length === 0 || queue.teamBPlayerIds.length === 0) {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, error: "Both teams need at least 1 player" }
+            : currentQueue,
+        ),
+      );
+      return;
+    }
+
+    if (!queue.selectedCourtId) {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                error: "Select an available court first.",
+              }
+            : currentQueue,
+        ),
+      );
+      return;
+    }
+
+    const selectedCourt = availableCourts.find(
+      (court) => String(court.id) === queue.selectedCourtId,
+    );
+
+    if (!selectedCourt) {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                error: "Selected court is no longer available.",
+              }
+            : currentQueue,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, isSubmitting: true, error: "" }
+            : currentQueue,
+        ),
+      );
+
+      const assignCourtResponse = await fetch(
+        `http://localhost:7007/api/matches/${queue.matchId}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            courtId: selectedCourt.id,
+          }),
+        },
+      );
+
+      const assignCourtData = await assignCourtResponse.json();
+
+      if (!assignCourtResponse.ok || !assignCourtData.success) {
+        throw new Error(assignCourtData?.message ?? "Failed to assign court");
+      }
+
+      const startResponse = await fetch(
+        `http://localhost:7007/api/courts/${selectedCourt.id}/sport/${selectedSport.id}/start`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const startData = await startResponse.json();
+
+      if (!startResponse.ok || !startData.success) {
+        throw new Error(startData?.message ?? "Failed to start match");
+      }
+
+      setCourts((currentCourts) =>
+        currentCourts.map((court) =>
+          court.id === selectedCourt.id
+            ? { ...court, ...startData.court, currentMatch: startData.match }
+            : court,
+        ),
+      );
+
+      setQueues((currentQueues) =>
+        currentQueues.filter((currentQueue) => currentQueue.id !== queueId),
+      );
+    } catch (error) {
+      console.error("Start queue match failed", error);
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? {
+                ...currentQueue,
+                error: error.message ?? "Unable to start match from queue",
+              }
+            : currentQueue,
+        ),
+      );
+    } finally {
+      setQueues((currentQueues) =>
+        currentQueues.map((currentQueue) =>
+          currentQueue.id === queueId
+            ? { ...currentQueue, isSubmitting: false }
+            : currentQueue,
+        ),
+      );
     }
   };
 
@@ -782,8 +1355,13 @@ const Home = () => {
           handleResetCourt={handleResetCourt}
           handleEndCourt={handleEndCourt}
           isPlayersLoading={isPlayersLoading}
-          courtScores={courtScores}
-          setCourtScores={setCourtScores}
+          setCourts={setCourts}
+          queues={queues}
+          handleAddQueue={handleAddQueue}
+          handleSaveQueue={handleSaveQueue}
+          handleDeleteQueue={handleDeleteQueue}
+          handleLaunchQueuedMatch={handleLaunchQueuedMatch}
+          availableCourts={availableCourts}
         />
       </section>
 

@@ -69,7 +69,7 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
       <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg border bg-white shadow-lg">
         {/* Header */}
         <div className="border-b bg-white px-6 py-4">
