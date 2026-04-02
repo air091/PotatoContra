@@ -107,7 +107,7 @@ const CourtsPanel = ({
               {!isCourtsLoading && courtsError ? <p>{courtsError}</p> : null}
             </header>
 
-            <div className="flex flex-wrap">
+            <div className="flex flex-wrap gap-2.5">
               {courts.map((court) => (
                 <CourtCard
                   key={court.id}
@@ -142,19 +142,17 @@ const CourtsPanel = ({
                   setCourts={setCourts}
                 />
               ))}
+                {courts.length >= 0 ? (
+                <button
+                  type="button"
+                  onClick={handleAddCourt}
+                  disabled={isCourtSubmitting}
+                  className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-text w-61.5"
+                >
+                  {isCourtSubmitting ? "Adding..." : "Add court"}
+                </button>
+              ) : null}
             </div>
-            
-
-            {courts.length >= 0 ? (
-              <button
-                type="button"
-                onClick={handleAddCourt}
-                disabled={isCourtSubmitting}
-                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-text"
-              >
-                {isCourtSubmitting ? "Adding..." : "Add court"}
-              </button>
-            ) : null}
           </div>
 
           <div className="queue-cards flex flex-wrap gap-2">

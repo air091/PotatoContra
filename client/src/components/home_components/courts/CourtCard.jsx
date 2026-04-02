@@ -4,6 +4,9 @@ import CourtEditMenu from "./CourtEditMenu";
 import formatElapsedTime from "./formatElapsedTime";
 import { GoPlus } from "react-icons/go";
 import { LuMinus } from "react-icons/lu";
+import { IoIosPause } from "react-icons/io";
+import { RiResetLeftFill } from "react-icons/ri";
+import { FaPlay } from "react-icons/fa6";
 
 const CourtCard = ({
   court,
@@ -105,34 +108,81 @@ const CourtCard = ({
   };
 
   return (
-    <div className="relative rounded border border-accent bg-border px-3 py-2 h-fit">
+    <div className="relative border border-accent bg-border px-3 py-2 w-61.5 rounded-[10px]">
       <header className="flex items-start justify-between p-1">
         <div className="flex items-center gap-x-2.5">
           <p className="text-[18px] font-md leading-tight text-text">{court.name}</p>
-          {/* <p className="text-xs leading-tight">
-            {court.isActive ? "Active" : "Inactive"}
-          </p> */}
           {elapsedTime ? (
             <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="cursor-pointer"
-          onClick={(event) => {
-            event.stopPropagation();
-            openCourtMenu(court);
-          }}
-        >
-          <IoEllipsisVertical size={12} className="text-text" />
-        </button>
+
+        <div className="flex items-center gap-x-1.5">
+          {currentMatch ? (
+            <div className="flex gap-2">
+              {canStart ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleStartCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full px-2 py-1 bg-success cursor-pointer"
+                >
+                  {startingCourtId === court.id ? <FaPlay size={14} /> : <FaPlay size={14} />}
+                </button>
+              ) : null}
+
+              {canReset ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleResetCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full p-1 bg-primary cursor-pointer"
+                >
+                  {resettingCourtId === court.id ? <RiResetLeftFill size={14} /> : <RiResetLeftFill size={14} />}
+                </button>
+              ) : null}
+
+              {canEnd ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleEndCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full text-xs p-1 bg-error text-text cursor-pointer"
+                >
+                  {endingCourtId === court.id ? <IoIosPause size={14} /> : <IoIosPause size={14} />}
+                </button>
+              ) : null}
+            </div>
+           ) : null}
+
+          <button
+            type="button"
+            className="cursor-pointer block"
+            onClick={(event) => {
+              event.stopPropagation();
+              openCourtMenu(court);
+            }}
+          >
+            <IoEllipsisVertical size={12} className="text-text" />
+          </button>
+        </div>
+        
       </header>
 
       <div className="flex p-1 w-full">
         <div className="w-full grid justify-start gap-y-1">
           <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
-            <div className="w-full grid grid-cols-2 gap-1 justify-start">
+            <div className="w-full flex flex-wrap flex-2 gap-1 justify-start">
               {teamAPlayers.map((matchPlayer) => (
                 <span
                   key={`${court.id}-team-a-${matchPlayer.playerId}`}
@@ -147,7 +197,7 @@ const CourtCard = ({
           )}
 
           {currentMatch && currentMatch.startedAt ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
@@ -175,7 +225,7 @@ const CourtCard = ({
           <p className="text-[14px] font-semibold text-text text-end">Team B</p>
 
           {teamBPlayers.length ? (
-            <div className="grid grid-cols-2 gap-1 justify-items-start">
+            <div className="flex flex-wrap flex-2 gap-1 justify-end">
               {teamBPlayers.map((matchPlayer) => (
                 <span
                   key={`${court.id}-team-b-${matchPlayer.playerId}`}
@@ -186,11 +236,11 @@ const CourtCard = ({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-end">No players yet.</p>
+            <p className="text-xs text-end text-text">No players yet.</p>
           )}
 
           {currentMatch && currentMatch.startedAt ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2">
               <button
                 type="button"
                 onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
@@ -214,52 +264,6 @@ const CourtCard = ({
           ) : null}
         </div>
       </div>
-
-      {currentMatch ? (
-        <div className="mt-3 flex gap-2">
-          {canStart ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleStartCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {startingCourtId === court.id ? "Starting..." : "Start"}
-            </button>
-          ) : null}
-
-          {canReset ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleResetCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {resettingCourtId === court.id ? "Resetting..." : "Reset"}
-            </button>
-          ) : null}
-
-          {canEnd ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleEndCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {endingCourtId === court.id ? "Ending..." : "End"}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
 
       {activeCourtMenuId === court.id ? (
         <CourtEditMenu
