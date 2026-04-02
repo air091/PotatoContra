@@ -1,6 +1,7 @@
 import { Outlet, useMatch, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Sidebar from "../components/home_components/Sidebar";
+import Header from "../components/home_components/Header";
 
 const HomeLayout = () => {
   const [sports, setSports] = useState([]);
@@ -55,9 +56,10 @@ const HomeLayout = () => {
   }, [isLoading, navigate, selectedSportId, sports]);
 
   return (
-    <div className="flex min-h-screen">
+    <div>
+      <Header />
+      <main className="flex">
       <Sidebar sports={sports} isLoading={isLoading} error={error} />
-      <main className="flex-1">
         <Outlet
           context={{
             sports,
