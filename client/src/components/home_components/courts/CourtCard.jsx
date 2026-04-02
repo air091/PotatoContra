@@ -2,6 +2,8 @@ import { useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import CourtEditMenu from "./CourtEditMenu";
 import formatElapsedTime from "./formatElapsedTime";
+import { GoPlus } from "react-icons/go";
+import { LuMinus } from "react-icons/lu";
 
 const CourtCard = ({
   court,
@@ -126,15 +128,15 @@ const CourtCard = ({
         </button>
       </header>
 
-      <div className="flex p-1">
-        <div>
+      <div className="flex p-1 w-full">
+        <div className="w-full grid justify-start gap-y-1">
           <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="w-full grid grid-cols-2 gap-1 justify-start">
               {teamAPlayers.map((matchPlayer) => (
                 <span
                   key={`${court.id}-team-a-${matchPlayer.playerId}`}
-                  className="px-1 py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {matchPlayer.player.name}
                 </span>
@@ -143,82 +145,75 @@ const CourtCard = ({
           ) : (
             <p className="text-[10px] text-text">No players yet.</p>
           )}
-        </div>
 
-        <div>
-          <p className="text-xs font-semibold">Team B</p>
-          {teamBPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
-              {teamBPlayers.map((matchPlayer) => (
-                <span
-                  key={`${court.id}-team-b-${matchPlayer.playerId}`}
-                  className="rounded border px-2 py-0.5 text-xs"
-                >
-                  {matchPlayer.player.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs">No players yet.</p>
-          )}
-        </div>
-      </div>
-
-      {currentMatch && currentMatch.startedAt ? (
-        <div className="mt-3 border-t pt-3">
-          <p className="mb-2 text-xs font-semibold">Score</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <p className="text-xs">Team A</p>
-              <div className="flex items-center gap-2">
+          {currentMatch && currentMatch.startedAt ? (
+            <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
                   disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
+                  className="bg-error text-xs rounded-full text-text"
                 >
-                  -
+                  <LuMinus size={20} />
                 </button>
-                <span className="w-6 text-center text-sm font-semibold">
+                <span className="w-6 text-center text-[18px] font-semibold text-text">
                   {currentMatch.scoreA}
                 </span>
                 <button
                   type="button"
                   onClick={() => updateScore("teamA", currentMatch.scoreA + 1)}
                   disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
+                  className="rounded-full text-xs text-text bg-success"
                 >
-                  +
+                  <GoPlus size={20} />
                 </button>
-              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs">Team B</p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
-                  disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
-                >
-                  -
-                </button>
-                <span className="w-6 text-center text-sm font-semibold">
-                  {currentMatch.scoreB}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamB", currentMatch.scoreB + 1)}
-                  disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
+          ) : null}
         </div>
-      ) : null}
+
+        <div className="w-full grid justify-end">
+          <p className="text-[14px] font-semibold text-text text-end">Team B</p>
+
+          {teamBPlayers.length ? (
+            <div className="grid grid-cols-2 gap-1 justify-items-start">
+              {teamBPlayers.map((matchPlayer) => (
+                <span
+                  key={`${court.id}-team-b-${matchPlayer.playerId}`}
+                  className="px-1 py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
+                >
+                  {matchPlayer.player.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-end">No players yet.</p>
+          )}
+
+          {currentMatch && currentMatch.startedAt ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
+                disabled={isBusy}
+                className="bg-error text-xs rounded-full text-text"
+              >
+                <LuMinus size={20} />
+              </button>
+              <span className="w-6 text-center text-[18px] font-semibold text-text">
+                {currentMatch.scoreB}
+              </span>
+              <button
+                type="button"
+                onClick={() => updateScore("teamB", currentMatch.scoreB + 1)}
+                disabled={isBusy}
+                className="rounded-full text-xs text-text bg-success"
+              >
+                <GoPlus size={20} />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       {currentMatch ? (
         <div className="mt-3 flex gap-2">
