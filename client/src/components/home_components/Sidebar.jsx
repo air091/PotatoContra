@@ -8,7 +8,7 @@ const Sidebar = ({ sports, isLoading, error }) => {
         <h3 className="px-1 py-1.5 font-md text-[18px]">Sports</h3>
         <ul className="px-1">
           {sports.map((sport) => (
-            <li key={sport.id} className="text-text bg-secondary">
+            <li key={sport.id} className="group text-text bg-secondary hover:bg-accent">
               <NavLink
                 to={`/sports/${sport.id}`}
                 className={({ isActive }) =>
@@ -17,7 +17,7 @@ const Sidebar = ({ sports, isLoading, error }) => {
               >
                 {({ isActive }) => (
                   <>
-                   <GiIncomingRocket size={20} className={isActive ? "text-primary" : ""} />
+                   <GiIncomingRocket size={20} className={isActive ? "text-primary" : "group-hover:text-primary"} />
                   {sport.name}</>
                 )}
                

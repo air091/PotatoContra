@@ -1299,7 +1299,7 @@ const Home = () => {
 
   return (
     <>
-      <section className="border p-4 flex">
+      <main className="border px-6 py-5 flex gap-x-2.5 bg-secondary">
         <PlayersPanel
           selectedSport={selectedSport}
           players={players}
@@ -1363,7 +1363,7 @@ const Home = () => {
           handleLaunchQueuedMatch={handleLaunchQueuedMatch}
           availableCourts={availableCourts}
         />
-      </section>
+      </main>
 
       {isAddPlayerOpen ? (
         <AddPlayerModal

@@ -1,4 +1,6 @@
 import PlayerCard from "./players/PlayerCard";
+import { FaUsers } from "react-icons/fa";
+import { FaRegMoneyBill1 } from "react-icons/fa6";
 
 const PlayersPanel = ({
   selectedSport,
@@ -25,7 +27,7 @@ const PlayersPanel = ({
 }) => {
   return (
     <div
-      className="border p-4 w-full max-w-lg"
+      className="border border-accent p-1.5 w-full max-w-79 rounded-[14px] bg-secondary"
       onClick={() => {
         if (isUpdatingPlayer || deletingPlayerId) return;
 
@@ -33,29 +35,27 @@ const PlayersPanel = ({
         setEditPlayerError("");
       }}
     >
-      <div className="w-full border px-4 py-2">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">{selectedSport.name}</h1>
+      <header className="flex items-center justify-between text-text p-2.5">
+        <h1 className="text-xl font-bold">{selectedSport.name}</h1>
 
-          <div className="flex gap-x-2">
-            <button
-              type="button"
-              onClick={() => setIsAddPlayerOpen(true)}
-              className="cursor-pointer border px-2 py-1 text-xs"
-            >
-              Add player
-            </button>
-            <button
-              type="button"
-              className="cursor-pointer border px-2 py-1 text-xs"
-            >
-              Payment
-            </button>
-          </div>
+        <div className="flex gap-x-2.5">
+          <button
+            type="button"
+            onClick={() => setIsAddPlayerOpen(true)}
+            className="group cursor-pointer px-1.5 py-1 rounded-sm hover:bg-accent"
+          >
+            <FaUsers size={16} className="group-hover:text-primary" />
+          </button>
+          <button
+            type="button"
+            className="group cursor-pointer px-1.5 py-1 rounded-sm hover:bg-accent"
+          >
+            <FaRegMoneyBill1 size={16} className="group-hover:text-primary" />
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="mt-2 w-full border p-3">
+      <div className="w-full p-3 rounded-[10px]">
         {isPlayersLoading ? <p>Loading players...</p> : null}
         {!isPlayersLoading && playersError ? <p>{playersError}</p> : null}
         {!isPlayersLoading && !playersError && players.length === 0 ? (
