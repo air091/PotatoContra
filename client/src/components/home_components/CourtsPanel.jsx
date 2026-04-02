@@ -94,70 +94,63 @@ const CourtsPanel = ({
         setEditCourtError("");
       }}
     >
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <h2 className="text-sm font-semibold">Courts</h2>
-      </div>
-
-      <p className="mb-3 text-xs">{courts.length} total</p>
-
-      {isCourtsLoading ? <p>Loading courts...</p> : null}
-      {!isCourtsLoading && courtsError ? <p>{courtsError}</p> : null}
+      
 
       {!isCourtsLoading && !courtsError ? (
         <div className="space-y-4">
-          <div className="court-cards flex flex-wrap gap-2">
-            {courts.length === 0 ? (
+          <div className="court-cards grid gap-2">
+            <header>
+              <h3 className="text-text">Courts</h3>
+              <p className="text-stone-400 text-xs">{courts.length} total</p>
+
+              {isCourtsLoading ? <p>Loading courts...</p> : null}
+              {!isCourtsLoading && courtsError ? <p>{courtsError}</p> : null}
+            </header>
+
+            <div className="flex flex-wrap">
+              {courts.map((court) => (
+                <CourtCard
+                  key={court.id}
+                  court={court}
+                  timerNow={timerNow}
+                  openCourtMenu={openCourtMenu}
+                  activeCourtMenuId={activeCourtMenuId}
+                  editCourtName={editCourtName}
+                  setEditCourtNameProp={setEditCourtNameProp}
+                  editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
+                  editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
+                  players={players}
+                  unavailablePlayerCourtMap={unavailablePlayerCourtMap}
+                  toggleCourtPlayer={toggleCourtPlayer}
+                  editCourtError={editCourtError}
+                  handleDeleteCourt={handleDeleteCourt}
+                  handleEditCourt={handleEditCourt}
+                  handleStartCourt={handleStartCourt}
+                  handleResetCourt={handleResetCourt}
+                  handleEndCourt={handleEndCourt}
+                  isUpdatingCourt={isUpdatingCourt}
+                  deletingCourtId={deletingCourtId}
+                  startingCourtId={startingCourtId}
+                  resettingCourtId={resettingCourtId}
+                  endingCourtId={endingCourtId}
+                  setActiveCourtMenuId={setActiveCourtMenuId}
+                  setEditCourtName={setEditCourtName}
+                  setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
+                  setEditCourtTeamBPlayerIds={setEditCourtTeamBPlayerIds}
+                  setEditCourtError={setEditCourtError}
+                  isPlayersLoading={isPlayersLoading}
+                  setCourts={setCourts}
+                />
+              ))}
+            </div>
+            
+
+            {courts.length >= 0 ? (
               <button
                 type="button"
                 onClick={handleAddCourt}
                 disabled={isCourtSubmitting}
-                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
-              >
-                {isCourtSubmitting ? "Adding..." : "Add court"}
-              </button>
-            ) : null}
-
-            {courts.map((court) => (
-              <CourtCard
-                key={court.id}
-                court={court}
-                timerNow={timerNow}
-                openCourtMenu={openCourtMenu}
-                activeCourtMenuId={activeCourtMenuId}
-                editCourtName={editCourtName}
-                setEditCourtNameProp={setEditCourtNameProp}
-                editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
-                editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
-                players={players}
-                unavailablePlayerCourtMap={unavailablePlayerCourtMap}
-                toggleCourtPlayer={toggleCourtPlayer}
-                editCourtError={editCourtError}
-                handleDeleteCourt={handleDeleteCourt}
-                handleEditCourt={handleEditCourt}
-                handleStartCourt={handleStartCourt}
-                handleResetCourt={handleResetCourt}
-                handleEndCourt={handleEndCourt}
-                isUpdatingCourt={isUpdatingCourt}
-                deletingCourtId={deletingCourtId}
-                startingCourtId={startingCourtId}
-                resettingCourtId={resettingCourtId}
-                endingCourtId={endingCourtId}
-                setActiveCourtMenuId={setActiveCourtMenuId}
-                setEditCourtName={setEditCourtName}
-                setEditCourtTeamAPlayerIds={setEditCourtTeamAPlayerIds}
-                setEditCourtTeamBPlayerIds={setEditCourtTeamBPlayerIds}
-                setEditCourtError={setEditCourtError}
-                isPlayersLoading={isPlayersLoading}
-                setCourts={setCourts}
-              />
-            ))}
-
-            {courts.length > 0 ? (
-              <button
-                type="button"
-                onClick={handleAddCourt}
-                disabled={isCourtSubmitting}
-                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
+                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-text"
               >
                 {isCourtSubmitting ? "Adding..." : "Add court"}
               </button>

@@ -103,15 +103,15 @@ const CourtCard = ({
   };
 
   return (
-    <div className="relative rounded border px-3 py-2 h-fit">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold leading-tight">{court.name}</p>
-          <p className="text-xs leading-tight">
+    <div className="relative rounded border border-accent bg-border px-3 py-2 h-fit">
+      <header className="flex items-start justify-between p-1">
+        <div className="flex items-center gap-x-2.5">
+          <p className="text-[18px] font-md leading-tight text-text">{court.name}</p>
+          {/* <p className="text-xs leading-tight">
             {court.isActive ? "Active" : "Inactive"}
-          </p>
+          </p> */}
           {elapsedTime ? (
-            <p className="text-xs leading-tight">Timer: {elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
           ) : null}
         </div>
         <button
@@ -122,26 +122,26 @@ const CourtCard = ({
             openCourtMenu(court);
           }}
         >
-          <IoEllipsisVertical />
+          <IoEllipsisVertical size={12} className="text-text" />
         </button>
-      </div>
+      </header>
 
-      <div className="mt-3 flex gap-x-4 space-y-2">
+      <div className="flex p-1">
         <div>
-          <p className="text-xs font-semibold">Team A</p>
+          <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
             <div className="mt-1 grid grid-cols-2 gap-1">
               {teamAPlayers.map((matchPlayer) => (
                 <span
                   key={`${court.id}-team-a-${matchPlayer.playerId}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-1 py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {matchPlayer.player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
         </div>
 
