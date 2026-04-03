@@ -32,7 +32,7 @@ const PlayerCard = ({
 
       <button
         type="button"
-        className="cursor-pointer"
+        className="cursor-pointer text-secondary"
         onClick={(event) => {
           event.stopPropagation();
           openPlayerMenu(player);

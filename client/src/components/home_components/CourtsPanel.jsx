@@ -156,7 +156,7 @@ const CourtsPanel = ({
 
           <div className="queue-cards grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 rounded-[14px] border border-border bg-surface p-2.5">
             <header>
-              <h3 className="text-text">Queue</h3>
+              <h3 className="text-text">Queues</h3>
               <p className="text-stone-400 text-xs">{queues.length} total</p>
 
               {isCourtsLoading ? <p>Loading courts...</p> : null}
