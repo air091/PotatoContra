@@ -702,10 +702,24 @@ const Home = () => {
   };
 
   const handleResetCourt = async (courtId) => {
+    let previousCourtSnapshot = null;
+
     try {
       setResettingCourtId(courtId);
       setCourtsError("");
       setEditCourtError("");
+      setCourts((currentCourts) =>
+        currentCourts.map((currentCourt) => {
+          if (currentCourt.id !== courtId) return currentCourt;
+
+          previousCourtSnapshot = currentCourt;
+
+          return {
+            ...currentCourt,
+            currentMatch: null,
+          };
+        }),
+      );
 
       const response = await fetch(
         `/api/courts/${courtId}/sport/${selectedSport.id}/reset`,
@@ -735,6 +749,14 @@ const Home = () => {
         setEditCourtTeamBPlayerIds([]);
       }
     } catch (resetCourtError) {
+      if (previousCourtSnapshot) {
+        setCourts((currentCourts) =>
+          currentCourts.map((currentCourt) =>
+            currentCourt.id === courtId ? previousCourtSnapshot : currentCourt,
+          ),
+        );
+      }
+
       console.error("Reset court failed", resetCourtError);
       setCourtsError(resetCourtError.message ?? "Unable to reset court.");
     } finally {

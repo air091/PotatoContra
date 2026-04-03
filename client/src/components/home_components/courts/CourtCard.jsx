@@ -70,7 +70,24 @@ const CourtCard = ({
     if (!currentMatch) return;
 
     const newScore = Math.max(0, value);
+    const previousMatchSnapshot = currentMatch;
     setIsUpdatingScore(true);
+
+    setCourts((prevCourts) =>
+      prevCourts.map((currentCourt) =>
+        currentCourt.id === court.id
+          ? {
+              ...currentCourt,
+              currentMatch: {
+                ...currentCourt.currentMatch,
+                ...(team === "teamA"
+                  ? { scoreA: newScore }
+                  : { scoreB: newScore }),
+              },
+            }
+          : currentCourt,
+      ),
+    );
 
     try {
       const scoreData =
@@ -91,17 +108,31 @@ const CourtCard = ({
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        console.error("Failed to update score:", data?.message);
-        return;
+        throw new Error(data?.message ?? "Failed to update score");
       }
 
       // Update the courts state with the updated match
       setCourts((prevCourts) =>
-        prevCourts.map((c) =>
-          c.id === court.id ? { ...c, currentMatch: data.match } : c,
+        prevCourts.map((currentCourt) =>
+          currentCourt.id === court.id
+            ? {
+                ...currentCourt,
+                currentMatch: {
+                  ...currentCourt.currentMatch,
+                  ...data.match,
+                },
+              }
+            : currentCourt,
         ),
       );
     } catch (error) {
+      setCourts((prevCourts) =>
+        prevCourts.map((currentCourt) =>
+          currentCourt.id === court.id
+            ? { ...currentCourt, currentMatch: previousMatchSnapshot }
+            : currentCourt,
+        ),
+      );
       console.error("Error updating score:", error);
     } finally {
       setIsUpdatingScore(false);

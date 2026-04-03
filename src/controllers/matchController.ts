@@ -561,6 +561,96 @@ class MatchController {
         teamBPlayerIds,
       } = request.body;
 
+      const isScoreOnlyUpdate =
+        scoreA !== undefined &&
+        teamAId === undefined &&
+        teamBId === undefined &&
+        courtId === undefined &&
+        queuedAt === undefined &&
+        startedAt === undefined &&
+        endedAt === undefined &&
+        winnerTeam === undefined &&
+        teamAPlayerIds === undefined &&
+        teamBPlayerIds === undefined;
+      const isScoreBOnlyUpdate =
+        scoreB !== undefined &&
+        teamAId === undefined &&
+        teamBId === undefined &&
+        courtId === undefined &&
+        queuedAt === undefined &&
+        startedAt === undefined &&
+        endedAt === undefined &&
+        winnerTeam === undefined &&
+        teamAPlayerIds === undefined &&
+        teamBPlayerIds === undefined;
+
+      if (isScoreOnlyUpdate || isScoreBOnlyUpdate) {
+        if (
+          scoreA !== undefined &&
+          (!Number.isInteger(scoreA) || Number(scoreA) < 0)
+        )
+          return response.status(400).json({
+            success: false,
+            message: "scoreA must be a non-negative integer",
+          });
+
+        if (
+          scoreB !== undefined &&
+          (!Number.isInteger(scoreB) || Number(scoreB) < 0)
+        )
+          return response.status(400).json({
+            success: false,
+            message: "scoreB must be a non-negative integer",
+          });
+
+        const matchExist = await prisma.match.findUnique({
+          where: { id: matchId as string },
+          select: {
+            id: true,
+            scoreA: true,
+            scoreB: true,
+            endedAt: true,
+            teamAId: true,
+            teamBId: true,
+          },
+        });
+
+        if (!matchExist)
+          return response
+            .status(404)
+            .json({ success: false, message: "Match not found" });
+
+        const nextScoreA = scoreA ?? matchExist.scoreA;
+        const nextScoreB = scoreB ?? matchExist.scoreB;
+        const nextWinnerTeam =
+          matchExist.teamAId && matchExist.teamBId
+            ? deriveWinnerTeam(
+                nextScoreA,
+                nextScoreB,
+                matchExist.teamAId,
+                matchExist.teamBId,
+                matchExist.endedAt,
+              )
+            : null;
+
+        const match = await prisma.match.update({
+          where: { id: matchId as string },
+          data: {
+            ...(scoreA !== undefined ? { scoreA } : {}),
+            ...(scoreB !== undefined ? { scoreB } : {}),
+            winnerTeam: nextWinnerTeam,
+          },
+          select: {
+            id: true,
+            scoreA: true,
+            scoreB: true,
+            winnerTeam: true,
+          },
+        });
+
+        return response.status(200).json({ success: true, match });
+      }
+
       const matchExist = await prisma.match.findUnique({
         where: { id: matchId as string },
         include: {

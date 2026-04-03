@@ -173,19 +173,9 @@ class CourtController {
     try {
       const { sportId, courtId } = request.params;
 
-      const [sportExist, courtExist] = await Promise.all([
-        prisma.sport.findFirst({
-          where: { id: sportId as string },
-        }),
-        prisma.court.findFirst({
-          where: { id: courtId as string, sportId: sportId as string },
-        }),
-      ]);
-
-      if (!sportExist)
-        return response
-          .status(404)
-          .json({ success: false, message: "Sport not found" });
+      const courtExist = await prisma.court.findFirst({
+        where: { id: courtId as string, sportId: sportId as string },
+      });
 
       if (!courtExist)
         return response
@@ -198,16 +188,11 @@ class CourtController {
           courtId: courtId as string,
           endedAt: null,
         },
-        include: {
-          teamA: true,
-          teamB: true,
-          court: true,
-          matchPlayers: {
-            include: {
-              player: true,
-              team: true,
-            },
-          },
+        select: {
+          id: true,
+          startedAt: true,
+          teamAId: true,
+          teamBId: true,
         },
         orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
       });
@@ -231,16 +216,10 @@ class CourtController {
             endedAt: new Date(),
             winnerTeam: null,
           },
-          include: {
-            teamA: true,
-            teamB: true,
-            court: true,
-            matchPlayers: {
-              include: {
-                player: true,
-                team: true,
-              },
-            },
+          select: {
+            id: true,
+            endedAt: true,
+            winnerTeam: true,
           },
         });
 
