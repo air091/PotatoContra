@@ -126,6 +126,8 @@ const Home = () => {
     if (!selectedSport) {
       setPlayers([]);
       setCourts([]);
+      setQueues([]);
+      setPlayerMatchCounts({});
       setPlayersError("");
       setCourtsError("");
       return;
@@ -133,13 +135,15 @@ const Home = () => {
 
     const abortController = new AbortController();
 
-    const getPlayersAPI = async () => {
+    const getDashboardAPI = async () => {
       try {
         setIsPlayersLoading(true);
+        setIsCourtsLoading(true);
         setPlayersError("");
+        setCourtsError("");
 
         const response = await fetch(
-          `http://localhost:7007/api/players/${selectedSport.id}`,
+          `http://localhost:7007/api/sports/${selectedSport.id}/dashboard`,
           {
             method: "GET",
             credentials: "include",
@@ -150,98 +154,48 @@ const Home = () => {
 
         if (response.status === 404) {
           setPlayers([]);
+          setCourts([]);
+          setQueues([]);
+          setPlayerMatchCounts({});
           return;
         }
 
         if (!response.ok || !data.success) {
-          throw new Error(data?.message ?? "Players API failed");
+          throw new Error(data?.message ?? "Dashboard API failed");
         }
 
-        setPlayers(
-          data.players.filter((player) => player.sportId === selectedSport.id),
-        );
-      } catch (fetchError) {
-        if (fetchError.name === "AbortError") return;
-
-        console.error("Players API failed", fetchError);
-        setPlayersError("Unable to load players.");
-      } finally {
-        setIsPlayersLoading(false);
-      }
-    };
-
-    const getCourtsAPI = async () => {
-      try {
-        setIsCourtsLoading(true);
-        setCourtsError("");
-
-        const response = await fetch(
-          `http://localhost:7007/api/courts/sport/${selectedSport.id}`,
-          {
-            method: "GET",
-            credentials: "include",
-            signal: abortController.signal,
-          },
-        );
-        const data = await response.json();
-
-        if (response.status === 404) {
-          setCourts([]);
-          return [];
-        }
-
-        if (!response.ok || !data.success) {
-          throw new Error(data?.message ?? "Courts API failed");
-        }
-
-        const nextCourts = data.courts.filter(
-          (court) => court.sportId === selectedSport.id,
-        );
-        setCourts(nextCourts);
-        return nextCourts;
-      } catch (fetchError) {
-        if (fetchError.name === "AbortError") return;
-
-        console.error("Courts API failed", fetchError);
-        setCourtsError("Unable to load courts.");
-        return [];
-      } finally {
-        setIsCourtsLoading(false);
-      }
-    };
-
-    const getQueuedMatchesAPI = async (loadedCourts = []) => {
-      try {
-        const response = await fetch(
-          `http://localhost:7007/api/matches/sports/${selectedSport.id}`,
-          {
-            method: "GET",
-            credentials: "include",
-            signal: abortController.signal,
-          },
-        );
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(data?.message ?? "Matches API failed");
-        }
-
-        const availableLoadedCourts = loadedCourts.filter(
+        const nextPlayers = data.players ?? [];
+        const nextCourts = data.courts ?? [];
+        const nextAvailableCourts = nextCourts.filter(
           (court) => !court.currentMatch || court.currentMatch.endedAt,
         );
+        const nextPlayerMatchCounts = {};
 
+        (data.playerMatchCounts ?? []).forEach((item) => {
+          nextPlayerMatchCounts[item.id] = item.matchesPlayed;
+        });
+
+        setPlayers(nextPlayers);
+        setCourts(nextCourts);
+        setPlayerMatchCounts(nextPlayerMatchCounts);
         setQueues(
-          data.matches
-            .filter(
-              (match) => !match.startedAt && !match.endedAt && !match.courtId,
-            )
-            .map((match) => mapMatchToQueue(match, availableLoadedCourts)),
+          (data.queuedMatches ?? []).map((match) =>
+            mapMatchToQueue(match, nextAvailableCourts),
+          ),
         );
       } catch (fetchError) {
         if (fetchError.name === "AbortError") return;
 
-        console.error("Matches API failed", fetchError);
+        console.error("Dashboard API failed", fetchError);
+        setPlayers([]);
+        setCourts([]);
         setQueues([]);
+        setPlayerMatchCounts({});
+        setPlayersError("Unable to load players.");
+        setCourtsError("Unable to load courts.");
+      } finally {
+        setIsPlayersLoading(false);
+        setIsCourtsLoading(false);
       }
     };
 
@@ -264,13 +218,7 @@ const Home = () => {
     setQueues([]);
     setEditPlayerError("");
     setEditCourtError("");
-    getPlayersAPI();
-    getPlayersMatchCountAPI(selectedSport.id);
-
-    (async () => {
-      const loadedCourts = await getCourtsAPI();
-      await getQueuedMatchesAPI(loadedCourts ?? []);
-    })();
+    getDashboardAPI();
 
     return () => {
       abortController.abort();
@@ -890,53 +838,6 @@ const Home = () => {
     }
   };
 
-  const removePlayersFromCurrentTeams = async (playerIds) => {
-    const teamsResponse = await fetch(
-      `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
-      {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    const teamsData = await teamsResponse.json();
-    const allTeams = teamsData.success ? teamsData.teams : [];
-
-    for (const playerId of playerIds) {
-      const currentTeams = allTeams.filter((team) =>
-        team.teamPlayers.some((tp) => tp.playerId === playerId),
-      );
-
-      for (const currentTeam of currentTeams) {
-        const removeResponse = await fetch(
-          `http://localhost:7007/api/teams/players/sports/${selectedSport.id}`,
-          {
-            method: "DELETE",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              teamId: currentTeam.id,
-              playerId,
-            }),
-          },
-        );
-
-        if (!removeResponse.ok) {
-          const errorData =
-            removeResponse.status === 204 ? {} : await removeResponse.json();
-          throw new Error(
-            errorData?.message ??
-              `Failed to remove player from current team: ${removeResponse.status}`,
-          );
-        }
-      }
-    }
-  };
-
   const handleDeleteQueue = async (queueId) => {
     const queue = queues.find((currentQueue) => currentQueue.id === queueId);
 
@@ -957,14 +858,14 @@ const Home = () => {
         currentQueues.filter((currentQueue) => currentQueue.id !== queueId),
       );
     } catch (error) {
-      console.error("Cancel queue failed", error);
+      console.error("Delete queue failed", error);
       setQueues((currentQueues) =>
         currentQueues.map((currentQueue) =>
           currentQueue.id === queueId
             ? {
                 ...currentQueue,
                 isSubmitting: false,
-                error: error.message ?? "Unable to cancel queue",
+                error: error.message ?? "Unable to delete queue",
               }
             : currentQueue,
         ),
@@ -1000,103 +901,8 @@ const Home = () => {
         ),
       );
 
-      const nextQueuedAt = queue.queuedAt ?? new Date().toISOString();
-
-      if (queue.matchId || queue.teamAId || queue.teamBId) {
-        await deleteQueueRecord(queue, true);
-      }
-
-      await removePlayersFromCurrentTeams([
-        ...teamAPlayerIds,
-        ...teamBPlayerIds,
-      ]);
-
-      const teamAResponse = await fetch(
-        `http://localhost:7007/api/teams/add/sports/${selectedSport.id}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        },
-      );
-
-      const teamAData = await teamAResponse.json();
-      if (!teamAResponse.ok || !teamAData.success) {
-        throw new Error(teamAData?.message ?? "Failed to create Team A");
-      }
-
-      for (const playerId of teamAPlayerIds) {
-        const addPlayerResponse = await fetch(
-          `http://localhost:7007/api/teams/add/players/sports/${selectedSport.id}`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              teamId: teamAData.team.id,
-              playerId,
-            }),
-          },
-        );
-
-        if (!addPlayerResponse.ok) {
-          const errorData = await addPlayerResponse.json();
-          throw new Error(
-            errorData?.message ??
-              `Failed to add player to Team A: ${addPlayerResponse.status}`,
-          );
-        }
-      }
-
-      const teamBResponse = await fetch(
-        `http://localhost:7007/api/teams/add/sports/${selectedSport.id}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        },
-      );
-
-      const teamBData = await teamBResponse.json();
-      if (!teamBResponse.ok || !teamBData.success) {
-        throw new Error(teamBData?.message ?? "Failed to create Team B");
-      }
-
-      for (const playerId of teamBPlayerIds) {
-        const addPlayerResponse = await fetch(
-          `http://localhost:7007/api/teams/add/players/sports/${selectedSport.id}`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              teamId: teamBData.team.id,
-              playerId,
-            }),
-          },
-        );
-
-        if (!addPlayerResponse.ok) {
-          const errorData = await addPlayerResponse.json();
-          throw new Error(
-            errorData?.message ??
-              `Failed to add player to Team B: ${addPlayerResponse.status}`,
-          );
-        }
-      }
-
       const matchResponse = await fetch(
-        `http://localhost:7007/api/matches/sports/${selectedSport.id}`,
+        `http://localhost:7007/api/matches/sports/${selectedSport.id}/queue`,
         {
           method: "POST",
           credentials: "include",
@@ -1104,9 +910,10 @@ const Home = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            teamAId: teamAData.team.id,
-            teamBId: teamBData.team.id,
-            queuedAt: nextQueuedAt,
+            matchId: queue.matchId,
+            queuedAt: queue.queuedAt ?? new Date().toISOString(),
+            teamAPlayerIds,
+            teamBPlayerIds,
           }),
         },
       );
@@ -1123,12 +930,12 @@ const Home = () => {
             ? {
                 ...currentQueue,
                 matchId: matchData.match.id,
-                teamAId: teamAData.team.id,
-                teamBId: teamBData.team.id,
+                teamAId: matchData.match.teamAId,
+                teamBId: matchData.match.teamBId,
                 teamAPlayerIds,
                 teamBPlayerIds,
                 selectedCourtId,
-                queuedAt: matchData.match.queuedAt ?? nextQueuedAt,
+                queuedAt: matchData.match.queuedAt ?? queue.queuedAt,
                 isSubmitting: false,
                 error: "",
               }

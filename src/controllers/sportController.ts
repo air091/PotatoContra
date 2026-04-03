@@ -52,6 +52,111 @@ class SportController {
     }
   };
 
+  static getSportDashboard = async (request: Request, response: Response) => {
+    try {
+      const { sportId } = request.params;
+
+      const sport = await prisma.sport.findUnique({
+        where: { id: sportId as string },
+      });
+
+      if (!sport)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
+
+      const [players, playerCountRows, courts, queuedMatches] = await Promise.all([
+        prisma.player.findMany({
+          where: { sportId: sportId as string },
+        }),
+        prisma.player.findMany({
+          where: { sportId: sportId as string },
+          select: {
+            id: true,
+            name: true,
+            matchPlayers: {
+              where: {
+                match: {
+                  startedAt: { not: null },
+                },
+              },
+              select: {
+                matchId: true,
+              },
+            },
+          },
+        }),
+        prisma.court.findMany({
+          where: { sportId: sportId as string },
+          include: {
+            matches: {
+              where: { endedAt: null },
+              include: {
+                teamA: true,
+                teamB: true,
+                matchPlayers: {
+                  include: {
+                    player: true,
+                    team: true,
+                  },
+                },
+              },
+              orderBy: [
+                { startedAt: "desc" },
+                { queuedAt: "desc" },
+                { id: "desc" },
+              ],
+              take: 1,
+            },
+          },
+        }),
+        prisma.match.findMany({
+          where: {
+            sportId: sportId as string,
+            startedAt: null,
+            endedAt: null,
+            courtId: null,
+          },
+          include: {
+            teamA: { include: { teamPlayers: true } },
+            teamB: { include: { teamPlayers: true } },
+            court: true,
+            matchPlayers: {
+              include: {
+                player: true,
+                team: true,
+              },
+            },
+          },
+          orderBy: [{ queuedAt: "asc" }, { startedAt: "asc" }, { id: "asc" }],
+        }),
+      ]);
+
+      return response.status(200).json({
+        success: true,
+        sport,
+        players,
+        playerMatchCounts: playerCountRows.map((player) => ({
+          id: player.id,
+          name: player.name,
+          matchesPlayed: player.matchPlayers.length,
+        })),
+        courts: courts.map(({ matches, ...court }) => ({
+          ...court,
+          currentMatch: matches[0] ?? null,
+        })),
+        queuedMatches,
+      });
+    } catch (error: any) {
+      console.error(`Get sport dashboard failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Get sport dashboard failed",
+        error_message: error.message,
+      });
+    }
+  };
+
   static deleteSport = async (request: Request, response: Response) => {
     try {
       const { sportId } = request.params;

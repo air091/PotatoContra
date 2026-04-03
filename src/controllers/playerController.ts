@@ -16,7 +16,9 @@ class PlayerController {
           .status(404)
           .json({ success: false, message: "Sport not found" });
 
-      const players = await prisma.player.findMany();
+      const players = await prisma.player.findMany({
+        where: { sportId: sportId as string },
+      });
       if (players.length === 0)
         return response
           .status(404)

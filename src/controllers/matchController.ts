@@ -312,6 +312,238 @@ class MatchController {
     }
   };
 
+  static saveQueue = async (request: Request, response: Response) => {
+    try {
+      const { sportId } = request.params;
+      const { matchId, queuedAt, teamAPlayerIds, teamBPlayerIds } =
+        request.body ?? {};
+
+      const sportExist = await prisma.sport.findUnique({
+        where: { id: sportId as string },
+      });
+
+      if (!sportExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
+
+      const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
+      const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
+
+      if (
+        normalizedTeamAPlayerIds === "invalid" ||
+        normalizedTeamBPlayerIds === "invalid"
+      )
+        return response.status(400).json({
+          success: false,
+          message:
+            "teamAPlayerIds and teamBPlayerIds must be arrays of player ids",
+        });
+
+      if (
+        normalizedTeamAPlayerIds.length === 0 ||
+        normalizedTeamBPlayerIds.length === 0
+      )
+        return response.status(400).json({
+          success: false,
+          message: "Both teams need at least 1 player",
+        });
+
+      const duplicateParticipant = normalizedTeamAPlayerIds.find((playerId) =>
+        normalizedTeamBPlayerIds.includes(playerId),
+      );
+
+      if (duplicateParticipant)
+        return response.status(400).json({
+          success: false,
+          message: "A player cannot appear on both sides of the same queue",
+        });
+
+      const requestedPlayerIds = [
+        ...normalizedTeamAPlayerIds,
+        ...normalizedTeamBPlayerIds,
+      ];
+      const parsedQueuedAt = parseOptionalDate(queuedAt);
+
+      if (parsedQueuedAt === "invalid")
+        return response.status(400).json({
+          success: false,
+          message: "queuedAt must be a valid ISO date",
+        });
+
+      const [players, existingQueueMatch, conflictingMatchPlayer] =
+        await Promise.all([
+          prisma.player.findMany({
+            where: {
+              sportId: sportId as string,
+              id: { in: requestedPlayerIds },
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          }),
+          typeof matchId === "string" && matchId.trim().length > 0
+            ? prisma.match.findFirst({
+                where: {
+                  id: matchId,
+                  sportId: sportId as string,
+                },
+                select: {
+                  id: true,
+                  teamAId: true,
+                  teamBId: true,
+                },
+              })
+            : Promise.resolve(null),
+          prisma.matchPlayer.findFirst({
+            where: {
+              playerId: { in: requestedPlayerIds },
+              match: {
+                sportId: sportId as string,
+                endedAt: null,
+                courtId: { not: null },
+              },
+            },
+            include: {
+              player: true,
+              match: {
+                include: {
+                  court: true,
+                },
+              },
+            },
+          }),
+        ]);
+
+      if (players.length !== requestedPlayerIds.length)
+        return response.status(404).json({
+          success: false,
+          message: "One or more players were not found for this sport",
+        });
+
+      if (matchId && !existingQueueMatch)
+        return response.status(404).json({
+          success: false,
+          message: "Queue match not found",
+        });
+
+      if (conflictingMatchPlayer)
+        return response.status(409).json({
+          success: false,
+          message: `${conflictingMatchPlayer.player.name} is already assigned to ${conflictingMatchPlayer.match.court?.name ?? "another court"}`,
+        });
+
+      const nextQueuedAt = (parsedQueuedAt ?? new Date()) as Date;
+
+      const match = await prisma.$transaction(async (transaction) => {
+        if (existingQueueMatch) {
+          await transaction.match.delete({
+            where: { id: existingQueueMatch.id },
+          });
+
+          await Promise.all([
+            existingQueueMatch.teamAId
+              ? transaction.team.delete({
+                  where: { id: existingQueueMatch.teamAId },
+                })
+              : Promise.resolve(),
+            existingQueueMatch.teamBId
+              ? transaction.team.delete({
+                  where: { id: existingQueueMatch.teamBId },
+                })
+              : Promise.resolve(),
+          ]);
+        }
+
+        await transaction.teamPlayer.deleteMany({
+          where: {
+            playerId: { in: requestedPlayerIds },
+            team: {
+              is: {
+                sportId: sportId as string,
+              },
+            },
+          },
+        });
+
+        const [teamA, teamB] = await Promise.all([
+          transaction.team.create({
+            data: {
+              sportId: sportId as string,
+              name: "Team A",
+            },
+          }),
+          transaction.team.create({
+            data: {
+              sportId: sportId as string,
+              name: "Team B",
+            },
+          }),
+        ]);
+
+        await Promise.all([
+          transaction.teamPlayer.createMany({
+            data: normalizedTeamAPlayerIds.map((playerId) => ({
+              teamId: teamA.id,
+              playerId,
+            })),
+          }),
+          transaction.teamPlayer.createMany({
+            data: normalizedTeamBPlayerIds.map((playerId) => ({
+              teamId: teamB.id,
+              playerId,
+            })),
+          }),
+        ]);
+
+        return transaction.match.create({
+          data: {
+            sportId: sportId as string,
+            teamAId: teamA.id,
+            teamBId: teamB.id,
+            queuedAt: nextQueuedAt,
+            matchPlayers: {
+              create: [
+                ...normalizedTeamAPlayerIds.map((playerId) => ({
+                  playerId,
+                  teamId: teamA.id,
+                })),
+                ...normalizedTeamBPlayerIds.map((playerId) => ({
+                  playerId,
+                  teamId: teamB.id,
+                })),
+              ],
+            },
+          },
+          include: {
+            teamA: true,
+            teamB: true,
+            court: true,
+            matchPlayers: {
+              include: {
+                player: true,
+                team: true,
+              },
+            },
+          },
+        });
+      });
+
+      return response.status(existingQueueMatch ? 200 : 201).json({
+        success: true,
+        match,
+      });
+    } catch (error: any) {
+      console.error(`Save queue failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Save queue failed",
+        error_message: error.message,
+      });
+    }
+  };
+
   static patchMatch = async (request: Request, response: Response) => {
     try {
       const { matchId } = request.params;
