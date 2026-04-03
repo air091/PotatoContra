@@ -98,9 +98,9 @@ const QueueCard = ({
   };
 
   return (
-    <div className="relative border border-accent bg-border px-3 py-2 w-61.5 rounded-[10px]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="text-text flex items-center gap-x-2.5">
+    <div className="relative border border-accent bg-border p-1.5 w-67 rounded-[10px]">
+      <div className="flex items-center justify-between p-1">
+        <div className="text-text gap-x-2.5">
           <p className="text-[18px] font-md leading-tight text-text">
             Queue {queueIndex + 1}
           </p>
@@ -108,16 +108,13 @@ const QueueCard = ({
             {queue.queuedAt ? "Queued" : `${totalQueued} players queued`}
           </p> */}
           {elapsedTime ? (
-            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime} | {selectedCourt?.name ?? "Unavailable"}
+              </p>
           ) : null}
         </div>
 
-        <div>
+        <div className="flex items-center gap-x-1.5">
           {queue.queuedAt ? (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs font-semibold">
-                Court: {selectedCourt?.name ?? "Unavailable"}
-              </span>
               <button
                 type="button"
                 onClick={(event) => {
@@ -125,11 +122,10 @@ const QueueCard = ({
                   handleLaunchQueuedMatch(queue.id);
                 }}
                 disabled={!canStart}
-                className="border px-2 py-1 text-xs"
+                className="px-2 py-1 text-xs block bg-success rounded-xs"
               >
-                {queue.isSubmitting ? "Starting..." : "Start"}
+                {queue.isSubmitting ? "Transferring..." : "Transfer"}
               </button>
-            </div>
           ) : null}
 
           <button
@@ -397,7 +393,7 @@ const QueueCard = ({
       )}
 
       {queue.error ? (
-        <p className="mt-3 text-xs text-red-600">{queue.error}</p>
+        <p className="mt-1.5 text-xs text-red-600">{queue.error}</p>
       ) : null}
     </div>
   );

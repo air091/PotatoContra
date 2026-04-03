@@ -96,8 +96,8 @@ const CourtsPanel = ({
     >
 
       {!isCourtsLoading && !courtsError ? (
-        <div className="space-y-4">
-          <div className="court-cards grid gap-2 bg-surface p-2.5 rounded-[14px] border border-accent">
+        <div className="grid gap-y-5">
+          <div className="court-cards grid gap-2.5 bg-surface p-2.5 rounded-[14px] border border-accent">
             <header>
               <h3 className="text-text">Courts</h3>
               <p className="text-stone-400 text-xs">{courts.length} total</p>
@@ -146,7 +146,7 @@ const CourtsPanel = ({
                   type="button"
                   onClick={handleAddCourt}
                   disabled={isCourtSubmitting}
-                  className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-stone-500 w-61.5 min-h-30"
+                  className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-stone-500 w-67 min-h-30"
                 >
                   {isCourtSubmitting ? "Adding..." : "Add court"}
                 </button>
@@ -154,17 +154,7 @@ const CourtsPanel = ({
             </div>
           </div>
 
-          <div className="queue-cards grid gap-2 bg-surface p-2.5 rounded-[14px] border border-accent">
-            {queues.length === 0 ? (
-              <button
-                type="button"
-                onClick={handleAddQueue}
-                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
-              >
-                Add queue
-              </button>
-            ) : null}
-
+          <div className="queue-cards flex flex-wrap gap-2 bg-surface p-2.5 rounded-[14px] border border-accent">
             {queues.map((queue, index) => (
               <QueueCard
                 key={queue.id}
@@ -183,11 +173,11 @@ const CourtsPanel = ({
               />
             ))}
 
-            {queues.length > 0 ? (
+            {queues.length >= 0 ? (
               <button
                 type="button"
                 onClick={handleAddQueue}
-                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm"
+                className="cursor-pointer rounded border border-dashed px-3 py-2 text-sm text-stone-500 w-67 min-h-30"
               >
                 Add queue
               </button>
