@@ -1,4 +1,6 @@
 import PlayerCard from "./players/PlayerCard";
+import { FaUsers } from "react-icons/fa";
+import { FaRegMoneyBill1 } from "react-icons/fa6";
 
 const PlayersPanel = ({
   selectedSport,
@@ -25,7 +27,7 @@ const PlayersPanel = ({
 }) => {
   return (
     <div
-      className="border p-4 w-full max-w-lg"
+      className="flex min-h-0 w-full flex-col overflow-hidden rounded-[14px] border border-border bg-surface p-1.5 lg:max-w-[420px]"
       onClick={() => {
         if (isUpdatingPlayer || deletingPlayerId) return;
 
@@ -33,29 +35,27 @@ const PlayersPanel = ({
         setEditPlayerError("");
       }}
     >
-      <div className="w-full border px-4 py-2">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">{selectedSport.name}</h1>
+      <header className="flex items-center justify-between text-text p-2.5">
+        <h1 className="text-xl font-bold">{selectedSport.name}</h1>
 
-          <div className="flex gap-x-2">
-            <button
-              type="button"
-              onClick={() => setIsAddPlayerOpen(true)}
-              className="cursor-pointer border px-2 py-1 text-xs"
-            >
-              Add player
-            </button>
-            <button
-              type="button"
-              className="cursor-pointer border px-2 py-1 text-xs"
-            >
-              Payment
-            </button>
-          </div>
+        <div className="flex gap-x-2.5">
+          <button
+            type="button"
+            onClick={() => setIsAddPlayerOpen(true)}
+            className="group cursor-pointer px-1.5 py-1 rounded-sm hover:bg-accent"
+          >
+            <FaUsers size={16} className="group-hover:text-primary" />
+          </button>
+          <button
+            type="button"
+            className="group cursor-pointer px-1.5 py-1 rounded-sm hover:bg-accent"
+          >
+            <FaRegMoneyBill1 size={16} className="group-hover:text-primary" />
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="mt-2 w-full border p-3">
+      <div className="min-h-0 w-full flex-1 overflow-y-auto rounded-[10px] p-3">
         {isPlayersLoading ? <p>Loading players...</p> : null}
         {!isPlayersLoading && playersError ? <p>{playersError}</p> : null}
         {!isPlayersLoading && !playersError && players.length === 0 ? (
@@ -63,7 +63,7 @@ const PlayersPanel = ({
         ) : null}
 
         {!isPlayersLoading && !playersError && players.length > 0 ? (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap content-start items-start justify-center gap-2">
             {players.map((player) => (
               <PlayerCard
                 key={player.id}

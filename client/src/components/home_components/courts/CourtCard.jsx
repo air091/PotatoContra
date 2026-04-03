@@ -2,6 +2,11 @@ import { useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import CourtEditMenu from "./CourtEditMenu";
 import formatElapsedTime from "./formatElapsedTime";
+import { GoPlus } from "react-icons/go";
+import { LuMinus } from "react-icons/lu";
+import { IoIosPause } from "react-icons/io";
+import { RiResetLeftFill } from "react-icons/ri";
+import { FaPlay } from "react-icons/fa6";
 
 const CourtCard = ({
   court,
@@ -103,168 +108,162 @@ const CourtCard = ({
   };
 
   return (
-    <div className="relative rounded border px-3 py-2 h-fit">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold leading-tight">{court.name}</p>
-          <p className="text-xs leading-tight">
-            {court.isActive ? "Active" : "Inactive"}
-          </p>
+    <div className="relative border border-accent bg-border px-3 py-2 w-67 rounded-[10px]">
+      <header className="flex items-start justify-between p-1">
+        <div className="flex items-center gap-x-2.5">
+          <p className="text-[18px] font-md leading-tight text-text">{court.name}</p>
           {elapsedTime ? (
-            <p className="text-xs leading-tight">Timer: {elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="cursor-pointer"
-          onClick={(event) => {
-            event.stopPropagation();
-            openCourtMenu(court);
-          }}
-        >
-          <IoEllipsisVertical />
-        </button>
-      </div>
 
-      <div className="mt-3 flex gap-x-4 space-y-2">
-        <div>
-          <p className="text-xs font-semibold">Team A</p>
+        <div className="flex items-center gap-x-1.5">
+          {currentMatch ? (
+            <div className="flex gap-2">
+              {canStart ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleStartCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full px-2 py-1 bg-success cursor-pointer"
+                >
+                  {startingCourtId === court.id ? <FaPlay size={14} /> : <FaPlay size={14} />}
+                </button>
+              ) : null}
+
+              {canReset ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleResetCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full p-1 bg-primary cursor-pointer"
+                >
+                  {resettingCourtId === court.id ? <RiResetLeftFill size={14} /> : <RiResetLeftFill size={14} />}
+                </button>
+              ) : null}
+
+              {canEnd ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleEndCourt(court.id);
+                  }}
+                  disabled={isBusy}
+                  className="rounded-full text-xs p-1 bg-error text-text cursor-pointer"
+                >
+                  {endingCourtId === court.id ? <IoIosPause size={14} /> : <IoIosPause size={14} />}
+                </button>
+              ) : null}
+            </div>
+           ) : null}
+
+          <button
+            type="button"
+            className="cursor-pointer block"
+            onClick={(event) => {
+              event.stopPropagation();
+              openCourtMenu(court);
+            }}
+          >
+            <IoEllipsisVertical size={14} className="text-text" />
+          </button>
+        </div>
+        
+      </header>
+
+      <div className="flex p-1 w-full">
+        <div className="w-full grid justify-start gap-y-1">
+          <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="w-full flex flex-wrap flex-2 gap-1 justify-start">
               {teamAPlayers.map((matchPlayer) => (
                 <span
                   key={`${court.id}-team-a-${matchPlayer.playerId}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {matchPlayer.player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
-        </div>
 
-        <div>
-          <p className="text-xs font-semibold">Team B</p>
-          {teamBPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
-              {teamBPlayers.map((matchPlayer) => (
-                <span
-                  key={`${court.id}-team-b-${matchPlayer.playerId}`}
-                  className="rounded border px-2 py-0.5 text-xs"
-                >
-                  {matchPlayer.player.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs">No players yet.</p>
-          )}
-        </div>
-      </div>
-
-      {currentMatch && currentMatch.startedAt ? (
-        <div className="mt-3 border-t pt-3">
-          <p className="mb-2 text-xs font-semibold">Score</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <p className="text-xs">Team A</p>
-              <div className="flex items-center gap-2">
+          {currentMatch && currentMatch.startedAt ? (
+            <div className="flex items-center gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
                   disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
+                  className="bg-error text-xs rounded-full text-text"
                 >
-                  -
+                  <LuMinus size={20} />
                 </button>
-                <span className="w-6 text-center text-sm font-semibold">
+                <span className="w-6 text-center text-[18px] font-semibold text-text">
                   {currentMatch.scoreA}
                 </span>
                 <button
                   type="button"
                   onClick={() => updateScore("teamA", currentMatch.scoreA + 1)}
                   disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
+                  className="rounded-full text-xs text-text bg-success"
                 >
-                  +
+                  <GoPlus size={20} />
                 </button>
-              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs">Team B</p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
-                  disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
+          ) : null}
+        </div>
+
+        <div className="w-full grid justify-end gap-y-1">
+          <p className="text-[14px] font-semibold text-text text-end">Team B</p>
+
+          {teamBPlayers.length ? (
+            <div className="flex flex-wrap flex-2 gap-1 justify-end">
+              {teamBPlayers.map((matchPlayer) => (
+                <span
+                  key={`${court.id}-team-b-${matchPlayer.playerId}`}
+                  className="px-1 py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
-                  -
-                </button>
-                <span className="w-6 text-center text-sm font-semibold">
-                  {currentMatch.scoreB}
+                  {matchPlayer.player.name}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamB", currentMatch.scoreB + 1)}
-                  disabled={isBusy}
-                  className="border px-2 py-1 text-xs"
-                >
-                  +
-                </button>
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
-      ) : null}
+          ) : (
+            <p className="text-xs text-end text-text">No players yet.</p>
+          )}
 
-      {currentMatch ? (
-        <div className="mt-3 flex gap-2">
-          {canStart ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleStartCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {startingCourtId === court.id ? "Starting..." : "Start"}
-            </button>
-          ) : null}
-
-          {canReset ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleResetCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {resettingCourtId === court.id ? "Resetting..." : "Reset"}
-            </button>
-          ) : null}
-
-          {canEnd ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleEndCourt(court.id);
-              }}
-              disabled={isBusy}
-              className="border px-2 py-1 text-xs"
-            >
-              {endingCourtId === court.id ? "Ending..." : "End"}
-            </button>
+          {currentMatch && currentMatch.startedAt ? (
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => updateScore("teamB", currentMatch.scoreB - 1)}
+                disabled={isBusy}
+                className="bg-error text-xs rounded-full text-text"
+              >
+                <LuMinus size={20} />
+              </button>
+              <span className="w-6 text-center text-[18px] font-semibold text-text">
+                {currentMatch.scoreB}
+              </span>
+              <button
+                type="button"
+                onClick={() => updateScore("teamB", currentMatch.scoreB + 1)}
+                disabled={isBusy}
+                className="rounded-full text-xs text-text bg-success"
+              >
+                <GoPlus size={20} />
+              </button>
+            </div>
           ) : null}
         </div>
-      ) : null}
+      </div>
 
       {activeCourtMenuId === court.id ? (
         <CourtEditMenu

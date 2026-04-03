@@ -31,17 +31,17 @@ const CourtEditMenu = ({
 
   return (
     <div
-      className="absolute right-0 top-8 z-10 w-md border bg-white p-3"
+      className="absolute right-0 top-8 z-10 w-md rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
       onClick={(event) => event.stopPropagation()}
     >
       <form onSubmit={handleEditCourt} className="space-y-3">
         <label className="block">
-          <span className="mb-1 block text-xs">Name</span>
+          <span className="mb-1 block text-xs text-stone-400">Name</span>
           <input
             type="text"
             value={editCourtName}
             onChange={(event) => setEditCourtNameProp(event.target.value)}
-            className="w-full border px-2 py-1 text-sm"
+            className="w-full rounded-[10px] border border-border bg-border px-2 py-1.5 text-sm text-text outline-none transition-colors focus:border-primary"
             disabled={isBusy}
             autoFocus
           />
@@ -49,8 +49,8 @@ const CourtEditMenu = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="mb-2 text-xs font-semibold">Team A</p>
-            <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+            <p className="mb-2 text-xs font-semibold text-stone-400">Team A</p>
+            <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
               {players.map((player) => {
                 const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                 const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
@@ -62,12 +62,12 @@ const CourtEditMenu = ({
                     key={`${court.id}-team-a-option-${player.id}`}
                     className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
                       isOnTeamA
-                        ? "border bg-stone-100"
+                        ? "border border-primary/50 bg-primary/15 text-text"
                         : isOnTeamB
-                          ? "border border-stone-300"
+                          ? "border border-border bg-accent text-stone-300"
                           : isUnavailable
-                            ? "border border-stone-200 bg-stone-50 text-stone-400"
-                            : ""
+                            ? "border border-border bg-secondary text-stone-500"
+                            : "border border-transparent text-text"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -76,17 +76,18 @@ const CourtEditMenu = ({
                         checked={isOnTeamA}
                         onChange={() => toggleCourtPlayer("A", player.id)}
                         disabled={isBusy || isPlayersLoading || isUnavailable}
+                        className="accent-primary"
                       />
                       <span>{player.name}</span>
                     </span>
                     {isOnTeamA ? (
-                      <span className="border px-1 py-0.5 text-[10px]">Team A</span>
+                      <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">Team A</span>
                     ) : null}
                     {!isOnTeamA && isOnTeamB ? (
-                      <span className="border px-1 py-0.5 text-[10px]">Team B</span>
+                      <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">Team B</span>
                     ) : null}
                     {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                      <span className="border px-1 py-0.5 text-[10px]">
+                      <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
                         On {assignedCourtName}
                       </span>
                     ) : null}
@@ -97,8 +98,8 @@ const CourtEditMenu = ({
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-semibold">Team B</p>
-            <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+            <p className="mb-2 text-xs font-semibold text-stone-400">Team B</p>
+            <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
               {players.map((player) => {
                 const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                 const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
@@ -110,12 +111,12 @@ const CourtEditMenu = ({
                     key={`${court.id}-team-b-option-${player.id}`}
                     className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs ${
                       isOnTeamB
-                        ? "border bg-stone-100"
+                        ? "border border-primary/50 bg-primary/15 text-text"
                         : isOnTeamA
-                          ? "border border-stone-300"
+                          ? "border border-border bg-accent text-stone-300"
                           : isUnavailable
-                            ? "border border-stone-200 bg-stone-50 text-stone-400"
-                            : ""
+                            ? "border border-border bg-secondary text-stone-500"
+                            : "border border-transparent text-text"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -124,17 +125,18 @@ const CourtEditMenu = ({
                         checked={isOnTeamB}
                         onChange={() => toggleCourtPlayer("B", player.id)}
                         disabled={isBusy || isPlayersLoading || isUnavailable}
+                        className="accent-primary"
                       />
                       <span>{player.name}</span>
                     </span>
                     {isOnTeamB ? (
-                      <span className="border px-1 py-0.5 text-[10px]">Team B</span>
+                      <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">Team B</span>
                     ) : null}
                     {!isOnTeamB && isOnTeamA ? (
-                      <span className="border px-1 py-0.5 text-[10px]">Team A</span>
+                      <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">Team A</span>
                     ) : null}
                     {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                      <span className="border px-1 py-0.5 text-[10px]">
+                      <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
                         On {assignedCourtName}
                       </span>
                     ) : null}
@@ -145,7 +147,9 @@ const CourtEditMenu = ({
           </div>
         </div>
 
-        {editCourtError ? <p className="text-xs">{editCourtError}</p> : null}
+        {editCourtError ? (
+          <p className="text-xs text-error">{editCourtError}</p>
+        ) : null}
 
         <div className="flex justify-end gap-2">
           <button
@@ -158,7 +162,7 @@ const CourtEditMenu = ({
               setEditCourtError("");
             }}
             disabled={isBusy}
-            className="border px-2 py-1 text-xs"
+            className="rounded-[10px] border border-border bg-border px-2 py-1 text-xs text-text transition-colors hover:bg-accent"
           >
             Cancel
           </button>
@@ -166,14 +170,14 @@ const CourtEditMenu = ({
             type="button"
             onClick={() => handleDeleteCourt(court.id)}
             disabled={isBusy}
-            className="border px-2 py-1 text-xs"
+            className="rounded-[10px] border border-error bg-error/15 px-2 py-1 text-xs text-error transition-colors hover:bg-error/25"
           >
             {deletingCourtId === court.id ? "Deleting..." : "Delete"}
           </button>
           <button
             type="submit"
             disabled={isBusy || isPlayersLoading || players.length === 0}
-            className="border px-2 py-1 text-xs"
+            className="rounded-[10px] border border-primary bg-primary px-2 py-1 text-xs font-medium text-accent transition-opacity hover:opacity-90"
           >
             {isUpdatingCourt ? "Saving..." : "Save"}
           </button>

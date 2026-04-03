@@ -1,1 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
 @import "tailwindcss";
+
+@theme {
+    --color-primary: #EFBF04;
+    --color-secondary: #1D1D1D;
+    --color-accent: #23262E;
+    --color-success: #3DC13C;
+    --color-error: #C13C3C;
+    --color-surface: #222222;
+    --color-border: #323232;
+    --color-text: #D9D9D9;
+
+    --fornt-primary: "Google Sans", sans-serif;
+}
+
+:root {
+    font-family: "Google Sans", sans-serif;
+    color: var(--color-text);
+    background-color: var(--color-secondary);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100dvh;
+    background-color: var(--color-secondary);
+    overflow: hidden;
+}

@@ -1099,14 +1099,25 @@ const Home = () => {
     }
   };
 
-  if (isLoading) return <div>Loading sports...</div>;
-  if (error) return <div>{error}</div>;
-  if (sports.length === 0) return <div>No sports available yet.</div>;
-  if (!selectedSport) return <div>Select a sport from the sidebar.</div>;
+  const statusClassName =
+    "flex min-h-0 flex-1 items-center justify-center rounded-[18px] border border-accent bg-surface p-6 text-text";
+
+  if (isLoading) return <section className={statusClassName}>Loading sports...</section>;
+  if (error) return <section className={statusClassName}>{error}</section>;
+  if (sports.length === 0) {
+    return (
+      <section className={statusClassName}>No sports available yet.</section>
+    );
+  }
+  if (!selectedSport) {
+    return (
+      <section className={statusClassName}>Select a sport from the sidebar.</section>
+    );
+  }
 
   return (
     <>
-      <section className="border p-4 flex">
+      <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
         <PlayersPanel
           selectedSport={selectedSport}
           players={players}

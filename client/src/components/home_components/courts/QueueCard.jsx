@@ -98,91 +98,92 @@ const QueueCard = ({
   };
 
   return (
-    <div className="relative rounded border px-3 py-2 h-fit w-fit">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold leading-tight">
+    <div className="relative border border-accent bg-border p-2 w-67 rounded-[10px]">
+      <div className="flex items-center justify-between p-1.5">
+        <div className="text-text">
+          <p className="text-[18px] font-md leading-tight text-text">
             Queue {queueIndex + 1}
           </p>
-          <p className="text-xs leading-tight">
+          {/* <p className="text-xs leading-tight">
             {queue.queuedAt ? "Queued" : `${totalQueued} players queued`}
-          </p>
+          </p> */}
           {elapsedTime ? (
-            <p className="text-xs leading-tight">Timer: {elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime} | {selectedCourt?.name ?? "Unavailable"}
+              </p>
           ) : null}
         </div>
-        <button
+
+        <div className="flex items-center gap-x-1.5">
+          {queue.queuedAt ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleLaunchQueuedMatch(queue.id);
+                }}
+                disabled={!canStart}
+                className="px-2 py-1 text-xs block bg-success rounded-xs"
+              >
+                {queue.isSubmitting ? "Transferring..." : "Transfer"}
+              </button>
+          ) : null}
+
+          <button
           type="button"
-          className="cursor-pointer"
+          className="cursor-pointer text-text"
           onClick={(event) => {
             event.stopPropagation();
             setIsQueueMenuOpen(!isQueueMenuOpen);
           }}
-        >
-          <IoEllipsisVertical />
-        </button>
+          >
+            <IoEllipsisVertical />
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 flex gap-x-4 space-y-2">
-        <div>
-          <p className="text-xs font-semibold">Team A</p>
+      <div className="flex p-1.5 w-full">
+        <div className="w-full grid justify-start gap-y-1">
+          <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="w-full flex flex-wrap flex-2 gap-1 justify-start">
               {teamAPlayers.map((player) => (
                 <span
                   key={`queue-preview-team-a-${player.id}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
         </div>
 
-        <div>
-          <p className="text-xs font-semibold">Team B</p>
+        <div className="w-full grid justify-end gap-y-1">
+          <p className="text-[14px] font-semibold text-text text-end">Team B</p>
           {teamBPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="flex flex-wrap flex-2 gap-1 justify-end">
               {teamBPlayers.map((player) => (
                 <span
                   key={`queue-preview-team-b-${player.id}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
         </div>
       </div>
 
-      {queue.queuedAt ? (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-xs font-semibold">
-            Court: {selectedCourt?.name ?? "Unavailable"}
-          </span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleLaunchQueuedMatch(queue.id);
-            }}
-            disabled={!canStart}
-            className="border px-2 py-1 text-xs"
-          >
-            {queue.isSubmitting ? "Starting..." : "Start"}
-          </button>
-        </div>
-      ) : null}
+      
 
       {isQueueMenuOpen && (
         <div
-          className="absolute right-0 top-12 z-10 w-md max-w-sm border bg-white p-3"
+          className="absolute right-0 top-12 z-10 w-md max-w-sm rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         >
           <form
@@ -202,8 +203,8 @@ const QueueCard = ({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="mb-2 text-xs font-semibold">Team A</p>
-                <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+                <p className="mb-2 text-xs font-semibold text-stone-400">Team A</p>
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
                   {players.map((player) => {
                     const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
                     const isOnTeamB = draftTeamBPlayerIds.includes(player.id);
@@ -217,12 +218,12 @@ const QueueCard = ({
                         key={`queue-team-a-${player.id}`}
                         className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
                           isOnTeamA
-                            ? "border bg-stone-100"
+                            ? "border border-primary/50 bg-primary/15 text-text"
                             : isOnTeamB
-                              ? "border border-stone-300"
+                              ? "border border-border bg-accent text-stone-300"
                               : isUnavailable
-                                ? "border border-stone-200 bg-stone-50 text-stone-400 cursor-not-allowed"
-                                : ""
+                                ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
+                                : "border border-transparent text-text"
                         }`}
                       >
                         <span className="flex items-center gap-2">
@@ -233,21 +234,22 @@ const QueueCard = ({
                             disabled={
                               queue.isSubmitting || isPlayersLoading || isUnavailable
                             }
+                            className="accent-primary"
                           />
                           <span>{player.name}</span>
                         </span>
                         {isOnTeamA ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
                             A
                           </span>
                         ) : null}
                         {!isOnTeamA && isOnTeamB ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
                             B
                           </span>
                         ) : null}
                         {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
                             {assignedLabel}
                           </span>
                         ) : null}
@@ -256,7 +258,7 @@ const QueueCard = ({
                   })}
                 </div>
                 {draftTeamAPlayerIds.length > 0 && (
-                  <div className="mt-2 text-xs font-semibold text-center">
+                  <div className="mt-2 text-center text-xs font-semibold text-stone-300">
                     {draftTeamAPlayerIds.length} player
                     {draftTeamAPlayerIds.length !== 1 ? "s" : ""}
                   </div>
@@ -264,8 +266,8 @@ const QueueCard = ({
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold">Team B</p>
-                <div className="max-h-40 space-y-2 overflow-y-auto border p-2">
+                <p className="mb-2 text-xs font-semibold text-stone-400">Team B</p>
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
                   {players.map((player) => {
                     const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
                     const isOnTeamB = draftTeamBPlayerIds.includes(player.id);
@@ -279,12 +281,12 @@ const QueueCard = ({
                         key={`queue-team-b-${player.id}`}
                         className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
                           isOnTeamB
-                            ? "border bg-stone-100"
+                            ? "border border-primary/50 bg-primary/15 text-text"
                             : isOnTeamA
-                              ? "border border-stone-300"
+                              ? "border border-border bg-accent text-stone-300"
                               : isUnavailable
-                                ? "border border-stone-200 bg-stone-50 text-stone-400 cursor-not-allowed"
-                                : ""
+                                ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
+                                : "border border-transparent text-text"
                         }`}
                       >
                         <span className="flex items-center gap-2">
@@ -295,21 +297,22 @@ const QueueCard = ({
                             disabled={
                               queue.isSubmitting || isPlayersLoading || isUnavailable
                             }
+                            className="accent-primary"
                           />
                           <span>{player.name}</span>
                         </span>
                         {isOnTeamB ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
                             B
                           </span>
                         ) : null}
                         {!isOnTeamB && isOnTeamA ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
                             A
                           </span>
                         ) : null}
                         {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                          <span className="border px-1 py-0.5 text-[10px]">
+                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
                             {assignedLabel}
                           </span>
                         ) : null}
@@ -318,7 +321,7 @@ const QueueCard = ({
                   })}
                 </div>
                 {draftTeamBPlayerIds.length > 0 && (
-                  <div className="mt-2 text-xs font-semibold text-center">
+                  <div className="mt-2 text-center text-xs font-semibold text-stone-300">
                     {draftTeamBPlayerIds.length} player
                     {draftTeamBPlayerIds.length !== 1 ? "s" : ""}
                   </div>
@@ -328,7 +331,7 @@ const QueueCard = ({
 
             <div>
               <label
-                className="mb-2 block text-xs font-semibold"
+                className="mb-2 block text-xs font-semibold text-stone-400"
                 htmlFor={`queue-court-select-${queue.id}`}
               >
                 Court
@@ -340,7 +343,7 @@ const QueueCard = ({
                   setDraftSelectedCourtId(event.target.value || null)
                 }
                 disabled={availableCourts.length === 0 || queue.isSubmitting}
-                className="w-full border px-2 py-2 text-xs"
+                className="w-full rounded-[10px] border border-border bg-border px-2 py-2 text-xs text-text outline-none transition-colors focus:border-primary"
               >
                 {availableCourts.length === 0 ? (
                   <option value="">No available courts</option>
@@ -354,7 +357,7 @@ const QueueCard = ({
             </div>
 
             {queue.error ? (
-              <p className="text-xs text-red-600">{queue.error}</p>
+              <p className="text-xs text-error">{queue.error}</p>
             ) : null}
 
             <div className="flex justify-end gap-2">
@@ -367,7 +370,7 @@ const QueueCard = ({
                   setIsQueueMenuOpen(false);
                 }}
                 disabled={queue.isSubmitting}
-                className="border px-3 py-2 text-xs"
+                className="rounded-[10px] border border-border bg-border px-3 py-2 text-xs text-text transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
@@ -375,14 +378,14 @@ const QueueCard = ({
                 type="button"
                 onClick={() => handleDeleteQueue(queue.id)}
                 disabled={queue.isSubmitting}
-                className="border px-3 py-2 text-xs"
+                className="rounded-[10px] border border-error bg-error/15 px-3 py-2 text-xs text-error transition-colors hover:bg-error/25"
               >
                 Delete
               </button>
               <button
                 type="submit"
                 disabled={!canSave}
-                className="border px-3 py-2 text-xs"
+                className="rounded-[10px] border border-primary bg-primary px-3 py-2 text-xs font-medium text-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {queue.isSubmitting ? "Saving..." : "Save"}
               </button>
@@ -392,7 +395,7 @@ const QueueCard = ({
       )}
 
       {queue.error ? (
-        <p className="mt-3 text-xs text-red-600">{queue.error}</p>
+        <p className="mt-1.5 text-xs text-error">{queue.error}</p>
       ) : null}
     </div>
   );

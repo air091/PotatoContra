@@ -69,22 +69,24 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
-      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg border bg-white shadow-lg">
-        {/* Header */}
-        <div className="border-b bg-white px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-[20px] border border-border bg-surface text-text shadow-2xl">
+        <div className="border-b border-border bg-border px-6 py-4">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold">{playerData?.name}</h2>
-              <p className="text-sm text-gray-600">{playerData?.sport?.name}</p>
+              <p className="text-sm text-stone-400">{playerData?.sport?.name}</p>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md p-1 transition-colors hover:bg-accent"
+            >
               <IoClose size={24} />
             </button>
           </div>
         </div>
 
-        {/* Content */}
         <div
           className="overflow-y-auto"
           style={{ maxHeight: "calc(90vh - 140px)" }}
@@ -97,132 +99,120 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
 
           {error && (
             <div className="p-6">
-              <p className="text-center text-red-600">{error}</p>
+              <p className="text-center text-error">{error}</p>
             </div>
           )}
 
           {!isLoading && !error && summary && (
             <>
-              {/* Summary Stats */}
-              <div className="border-b bg-gray-50 px-6 py-4">
+              <div className="border-b border-border bg-border px-6 py-4">
                 <div className="grid grid-cols-4 gap-3">
                   <div className="text-center">
-                    <p className="text-xs text-gray-600">Games</p>
+                    <p className="text-xs text-stone-400">Games</p>
                     <p className="text-xl font-bold">{summary.gamesPlayed}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-600">Wins</p>
-                    <p className="text-xl font-bold text-green-600">
-                      {summary.wins}
-                    </p>
+                    <p className="text-xs text-stone-400">Wins</p>
+                    <p className="text-xl font-bold text-success">{summary.wins}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-600">Losses</p>
-                    <p className="text-xl font-bold text-red-600">
-                      {summary.losses}
-                    </p>
+                    <p className="text-xs text-stone-400">Losses</p>
+                    <p className="text-xl font-bold text-error">{summary.losses}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-600">Draws</p>
-                    <p className="text-xl font-bold text-gray-600">
-                      {summary.draws}
-                    </p>
+                    <p className="text-xs text-stone-400">Draws</p>
+                    <p className="text-xl font-bold text-stone-300">{summary.draws}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Matches List */}
-              <div className="p-6 space-y-3">
+              <div className="space-y-3 p-6">
                 {matches.length === 0 ? (
-                  <p className="text-center text-sm text-gray-600">
+                  <p className="text-center text-sm text-stone-400">
                     No completed matches yet.
                   </p>
                 ) : (
                   matches.map((match) => (
                     <div
                       key={match.matchId}
-                      className="border rounded p-3 hover:bg-gray-50 transition-colors"
+                      className="rounded-[14px] border border-border bg-border p-3 transition-colors hover:bg-accent"
                     >
-                      <div className="grid grid-cols-2 gap-3 mb-2 text-sm">
+                      <div className="mb-2 grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-xs text-gray-600 font-semibold">
+                          <p className="text-xs font-semibold text-stone-400">
                             Court
                           </p>
-                          <p className="font-medium">
+                          <p className="font-medium text-text">
                             {match.court?.name ?? "Unknown"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 font-semibold">
+                          <p className="text-xs font-semibold text-stone-400">
                             Duration
                           </p>
-                          <p className="font-medium">
+                          <p className="font-medium text-text">
                             {formatDuration(match.startedAt, match.endedAt)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 font-semibold">
+                          <p className="text-xs font-semibold text-stone-400">
                             Start
                           </p>
-                          <p className="text-xs">
+                          <p className="text-xs text-text">
                             {formatTime(match.startedAt)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 font-semibold">
+                          <p className="text-xs font-semibold text-stone-400">
                             End
                           </p>
-                          <p className="text-xs">{formatTime(match.endedAt)}</p>
+                          <p className="text-xs text-text">
+                            {formatTime(match.endedAt)}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mb-2">
-                        <div className="text-xs bg-blue-50 rounded p-2">
-                          <p className="font-semibold text-gray-700 mb-1">
+                      <div className="mb-2 grid grid-cols-2 gap-3">
+                        <div className="rounded-[12px] border border-primary/30 bg-primary/10 p-2 text-xs">
+                          <p className="mb-1 font-semibold text-primary">
                             Your Team
                           </p>
-                          <p className="font-bold text-blue-700 mb-1">
+                          <p className="mb-1 font-bold text-primary">
                             Score: {match.score.playerTeam}
                           </p>
                           {match.teamMembers.length > 0 && (
                             <div>
-                              <p className="text-gray-600 text-xs mb-1">
+                              <p className="mb-1 text-xs text-stone-400">
                                 Members:
                               </p>
                               {match.teamMembers.map((member) => (
-                                <p
-                                  key={member.id}
-                                  className="text-gray-700 truncate"
-                                >
-                                  • {member.name}
+                                <p key={member.id} className="truncate text-text">
+                                  - {member.name}
                                 </p>
                               ))}
                             </div>
                           )}
                         </div>
 
-                        <div className="text-xs bg-gray-100 rounded p-2">
-                          <p className="font-semibold text-gray-700 mb-1">
+                        <div className="rounded-[12px] border border-border bg-secondary p-2 text-xs">
+                          <p className="mb-1 font-semibold text-stone-300">
                             Opponent Team
                           </p>
-                          <p className="font-bold text-gray-700 mb-1">
+                          <p className="mb-1 font-bold text-text">
                             Score: {match.score.opponent}
                           </p>
-                          <p className="text-gray-600 text-xs mb-1">
+                          <p className="mb-1 text-xs text-stone-400">
                             {match.opponentTeam?.name ?? "Unknown"}
                           </p>
                           {match.opponentMembers &&
                             match.opponentMembers.length > 0 && (
                               <div>
-                                <p className="text-gray-600 text-xs mb-1">
+                                <p className="mb-1 text-xs text-stone-400">
                                   Members:
                                 </p>
                                 {match.opponentMembers.map((member) => (
-                                  <p
-                                    key={member.id}
-                                    className="text-gray-700 truncate"
-                                  >
-                                    • {member.name}
+                                  <p key={member.id} className="truncate text-text">
+                                    - {member.name}
                                   </p>
                                 ))}
                               </div>
@@ -230,14 +220,14 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center">
+                      <div className="flex items-center justify-between">
                         <span
-                          className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
+                          className={`inline-block rounded px-2 py-1 text-xs font-semibold ${
                             match.result === "win"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-success/20 text-success"
                               : match.result === "loss"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-200 text-gray-800"
+                                ? "bg-error/20 text-error"
+                                : "bg-accent text-stone-300"
                           }`}
                         >
                           {match.result.toUpperCase()}

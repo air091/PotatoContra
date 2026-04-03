@@ -1,11 +1,13 @@
 import { Outlet, useMatch, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Sidebar from "../components/home_components/Sidebar";
+import Header from "../components/home_components/Header";
 
 const HomeLayout = () => {
   const [sports, setSports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const selectedSportMatch = useMatch("/sports/:sportId");
   const selectedSportId = selectedSportMatch?.params?.sportId ?? null;
@@ -55,9 +57,26 @@ const HomeLayout = () => {
   }, [isLoading, navigate, selectedSportId, sports]);
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar sports={sports} isLoading={isLoading} error={error} />
-      <main className="flex-1">
+    <div className="mx-auto flex h-dvh w-full max-w-480 flex-col overflow-hidden bg-secondary text-text">
+      <Header
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={() =>
+          setIsSidebarCollapsed((currentValue) => !currentValue)
+        }
+      />
+      <main
+        className={`flex min-h-0 flex-1 flex-col px-4 pb-4 md:flex-row md:px-6 md:pb-6 ${
+          isSidebarCollapsed ? "gap-0" : "gap-4"
+        }`}
+      >
+        <Sidebar
+          sports={sports}
+          isLoading={isLoading}
+          error={error}
+          isCollapsed={isSidebarCollapsed}
+        />
+
+        <div className="min-h-0 flex flex-1 flex-col">
         <Outlet
           context={{
             sports,
@@ -66,6 +85,7 @@ const HomeLayout = () => {
             selectedSport,
           }}
         />
+        </div>
       </main>
     </div>
   );
