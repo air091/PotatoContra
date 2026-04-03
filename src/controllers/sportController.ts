@@ -2,49 +2,15 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { requireWorkspaceId } from "../lib/workspace";
 
+const DEFAULT_SPORT_NAME = "Badminton";
+
 class SportController {
   static postSport = async (request: Request, response: Response) => {
     try {
-      const workspaceId = requireWorkspaceId(request, response);
-      if (!workspaceId) return;
-
-      const { name } = request.body;
-
-      const sportName = name.trim();
-      if (sportName.length === 0)
-        return response
-          .status(400)
-          .json({ success: false, message: "Name is required" });
-
-      const workspaceExist = await prisma.workspace.findUnique({
-        where: { id: workspaceId },
+      return response.status(403).json({
+        success: false,
+        message: "Custom sports are not supported yet. Badminton is the only available sport.",
       });
-
-      if (!workspaceExist)
-        return response.status(404).json({
-          success: false,
-          message: "Workspace not found",
-        });
-
-      const isExist = await prisma.sport.findFirst({
-        where: {
-          name: sportName,
-          workspaceId,
-        },
-      });
-
-      if (isExist)
-        return response
-          .status(409)
-          .json({ success: false, message: "Sport already exist" });
-
-      const sport = await prisma.sport.create({
-        data: {
-          name: sportName,
-          workspaceId,
-        },
-      });
-      return response.status(201).json({ success: true, sport });
     } catch (error: any) {
       console.error(`Post sport failed ${error}`);
       return response.status(500).json({
@@ -60,12 +26,23 @@ class SportController {
       const workspaceId = requireWorkspaceId(request, response);
       if (!workspaceId) return;
 
-      const sports = await prisma.sport.findMany({
-        where: { workspaceId },
-        orderBy: { name: "asc" },
+      let sport = await prisma.sport.findFirst({
+        where: {
+          workspaceId,
+          name: DEFAULT_SPORT_NAME,
+        },
       });
 
-      return response.status(200).json({ success: true, sports });
+      if (!sport) {
+        sport = await prisma.sport.create({
+          data: {
+            workspaceId,
+            name: DEFAULT_SPORT_NAME,
+          },
+        });
+      }
+
+      return response.status(200).json({ success: true, sports: [sport] });
     } catch (error: any) {
       console.error(`Get sports failed ${error}`);
       return response.status(500).json({
@@ -189,28 +166,10 @@ class SportController {
 
   static deleteSport = async (request: Request, response: Response) => {
     try {
-      const workspaceId = requireWorkspaceId(request, response);
-      if (!workspaceId) return;
-
-      const { sportId } = request.params;
-
-      const sport = await prisma.sport.findFirst({
-        where: {
-          id: sportId as string,
-          workspaceId,
-        },
+      return response.status(403).json({
+        success: false,
+        message: "Deleting the default sport is not supported.",
       });
-
-      if (!sport)
-        return response
-          .status(404)
-          .json({ success: false, message: "No sport found" });
-
-      await prisma.sport.delete({
-        where: { id: sportId as string },
-      });
-
-      return response.status(204).json({});
     } catch (error: any) {
       console.error(`Delete sport failed ${error}`);
       return response.status(500).json({

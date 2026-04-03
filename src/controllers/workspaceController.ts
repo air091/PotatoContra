@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 
+const DEFAULT_SPORT_NAME = "Badminton";
+
 class WorkspaceController {
   static resolveWorkspace = async (request: Request, response: Response) => {
     try {
@@ -22,16 +24,44 @@ class WorkspaceController {
           where: { id: normalizedWorkspaceId },
         });
 
-        if (workspace)
+        if (workspace) {
+          const sport = await prisma.sport.findFirst({
+            where: {
+              workspaceId: workspace.id,
+              name: DEFAULT_SPORT_NAME,
+            },
+          });
+
+          if (!sport) {
+            await prisma.sport.create({
+              data: {
+                workspaceId: workspace.id,
+                name: DEFAULT_SPORT_NAME,
+              },
+            });
+          }
+
           return response.status(200).json({
             success: true,
             workspace,
             isNew: false,
           });
+        }
       }
 
-      const workspace = await prisma.workspace.create({
-        data: {},
+      const workspace = await prisma.$transaction(async (transaction) => {
+        const createdWorkspace = await transaction.workspace.create({
+          data: {},
+        });
+
+        await transaction.sport.create({
+          data: {
+            workspaceId: createdWorkspace.id,
+            name: DEFAULT_SPORT_NAME,
+          },
+        });
+
+        return createdWorkspace;
       });
 
       return response.status(201).json({

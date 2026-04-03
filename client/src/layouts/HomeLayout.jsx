@@ -64,36 +64,6 @@ const HomeLayout = () => {
     };
   }, []);
 
-  const createSport = async (name) => {
-    const trimmedName = name.trim();
-
-    if (!trimmedName) {
-      throw new Error("Sport name is required.");
-    }
-
-    const response = await apiFetch("/api/sports/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: trimmedName }),
-    });
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data?.message ?? "Unable to create sport.");
-    }
-
-    setSports((currentSports) => {
-      const nextSports = [...currentSports, data.sport];
-      nextSports.sort((sportA, sportB) => sportA.name.localeCompare(sportB.name));
-      return nextSports;
-    });
-    navigate(`/sports/${data.sport.id}`);
-
-    return data.sport;
-  };
-
   useEffect(() => {
     if (isLoading || sports.length === 0) return;
 
@@ -121,7 +91,6 @@ const HomeLayout = () => {
           isLoading={isLoading}
           error={error}
           isCollapsed={isSidebarCollapsed}
-          createSport={createSport}
         />
 
         <div className="min-h-0 flex flex-1 flex-col">
@@ -132,7 +101,6 @@ const HomeLayout = () => {
               error,
               selectedSport,
               workspaceId,
-              createSport,
             }}
           />
         </div>

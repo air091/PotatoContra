@@ -58,8 +58,7 @@ const mapMatchToQueue = (match, availableCourts) => ({
 });
 
 const Home = () => {
-  const { sports, isLoading, error, selectedSport, createSport } =
-    useOutletContext();
+  const { sports, isLoading, error, selectedSport } = useOutletContext();
   const [players, setPlayers] = useState([]);
   const [courts, setCourts] = useState([]);
   const [isPlayersLoading, setIsPlayersLoading] = useState(false);
@@ -90,9 +89,6 @@ const Home = () => {
   const [editCourtError, setEditCourtError] = useState("");
   const [playerMatchCounts, setPlayerMatchCounts] = useState({});
   const [queues, setQueues] = useState([]);
-  const [sportName, setSportName] = useState("");
-  const [sportError, setSportError] = useState("");
-  const [isCreatingSport, setIsCreatingSport] = useState(false);
   const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
     courts,
     activeCourtMenuId,
@@ -1147,22 +1143,6 @@ const Home = () => {
     }
   };
 
-  const handleCreateSport = async (event) => {
-    event.preventDefault();
-
-    try {
-      setIsCreatingSport(true);
-      setSportError("");
-      await createSport(sportName);
-      setSportName("");
-    } catch (createSportError) {
-      console.error("Create sport failed", createSportError);
-      setSportError(createSportError.message ?? "Unable to create sport.");
-    } finally {
-      setIsCreatingSport(false);
-    }
-  };
-
   const statusClassName =
     "flex min-h-0 flex-1 items-center justify-center rounded-[18px] border border-border bg-surface p-6 text-text";
 
@@ -1171,37 +1151,7 @@ const Home = () => {
   if (error) return <section className={statusClassName}>{error}</section>;
   if (sports.length === 0) {
     return (
-      <section className={statusClassName}>
-        <form
-          onSubmit={handleCreateSport}
-          className="flex w-full max-w-sm flex-col gap-3"
-        >
-          <h2 className="text-center text-lg font-semibold">
-            Create your first sport
-          </h2>
-          <input
-            type="text"
-            value={sportName}
-            onChange={(event) => setSportName(event.target.value)}
-            placeholder="Badminton"
-            className="rounded-xl border border-border bg-secondary px-4 py-3 text-text outline-none transition-colors focus:border-primary"
-            disabled={isCreatingSport}
-          />
-          <button
-            type="submit"
-            disabled={isCreatingSport}
-            className="rounded-xl bg-primary px-4 py-3 font-semibold text-secondary transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isCreatingSport ? "Creating sport..." : "Create sport"}
-          </button>
-          <p className="text-center text-sm text-stone-400">
-            This browser gets its own private workspace automatically.
-          </p>
-          {sportError ? (
-            <p className="text-center text-sm text-error">{sportError}</p>
-          ) : null}
-        </form>
-      </section>
+      <section className={statusClassName}>Preparing Badminton...</section>
     );
   }
   if (!selectedSport) {

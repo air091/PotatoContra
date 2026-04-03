@@ -1,28 +1,7 @@
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { GiIncomingRocket } from "react-icons/gi";
 
-const Sidebar = ({ sports, isLoading, error, isCollapsed, createSport }) => {
-  const [sportName, setSportName] = useState("");
-  const [sportError, setSportError] = useState("");
-  const [isCreatingSport, setIsCreatingSport] = useState(false);
-
-  const handleCreateSport = async (event) => {
-    event.preventDefault();
-
-    try {
-      setIsCreatingSport(true);
-      setSportError("");
-      await createSport(sportName);
-      setSportName("");
-    } catch (createSportError) {
-      console.error("Create sport failed", createSportError);
-      setSportError(createSportError.message ?? "Unable to create sport.");
-    } finally {
-      setIsCreatingSport(false);
-    }
-  };
-
+const Sidebar = ({ sports, isLoading, error, isCollapsed }) => {
   return (
     <nav
       id="app-sidebar"
@@ -63,30 +42,6 @@ const Sidebar = ({ sports, isLoading, error, isCollapsed, createSport }) => {
           <p className="px-3 py-2">No sports yet.</p>
         ) : null}
         {error ? <p className="px-3 py-2">{error}</p> : null}
-        <form onSubmit={handleCreateSport} className="grid gap-y-2 px-1 pt-2">
-          <label htmlFor="sport-name" className="px-2 text-sm text-stone-300">
-            New sport
-          </label>
-          <input
-            id="sport-name"
-            type="text"
-            value={sportName}
-            onChange={(event) => setSportName(event.target.value)}
-            placeholder="Add a sport"
-            disabled={isCreatingSport}
-            className="rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-          />
-          <button
-            type="submit"
-            disabled={isCreatingSport}
-            className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-secondary transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isCreatingSport ? "Creating..." : "Create sport"}
-          </button>
-          {sportError ? (
-            <p className="px-2 text-xs text-error">{sportError}</p>
-          ) : null}
-        </form>
       </div>
     </nav>
   );
