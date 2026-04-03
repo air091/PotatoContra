@@ -262,14 +262,16 @@ const QueueCard = ({
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  setIsQueueMenuOpen(false);
+
                   const didSave = await handleSaveQueue(queue.id, {
                     teamAPlayerIds: draftTeamAPlayerIds,
                     teamBPlayerIds: draftTeamBPlayerIds,
                     selectedCourtId: draftSelectedCourtId,
                   });
 
-                  if (didSave) {
-                    setIsQueueMenuOpen(false);
+                  if (!didSave) {
+                    setIsQueueMenuOpen(true);
                   }
                 }}
                 className="space-y-3"

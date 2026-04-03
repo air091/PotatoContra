@@ -107,7 +107,7 @@ const CourtEditMenu = ({
   }, [closeMenu]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[999]" onClick={closeMenu}>
+    <div className="fixed inset-0 z-999" onClick={closeMenu}>
       <div
         ref={menuRef}
         style={{
@@ -132,8 +132,10 @@ const CourtEditMenu = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="mb-2 text-xs font-semibold text-stone-400">Team A</p>
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
+              <p className="mb-2 text-xs font-semibold text-stone-400">
+                Team A
+              </p>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-border p-2">
                 {players.map((player) => {
                   const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                   const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
@@ -187,8 +189,10 @@ const CourtEditMenu = ({
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-semibold text-stone-400">Team B</p>
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
+              <p className="mb-2 text-xs font-semibold text-stone-400">
+                Team B
+              </p>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-border p-2">
                 {players.map((player) => {
                   const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                   const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);

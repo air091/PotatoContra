@@ -318,15 +318,6 @@ class MatchController {
       const { matchId, queuedAt, teamAPlayerIds, teamBPlayerIds } =
         request.body ?? {};
 
-      const sportExist = await prisma.sport.findUnique({
-        where: { id: sportId as string },
-      });
-
-      if (!sportExist)
-        return response
-          .status(404)
-          .json({ success: false, message: "Sport not found" });
-
       const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
       const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
 
@@ -393,6 +384,7 @@ class MatchController {
                   id: true,
                   teamAId: true,
                   teamBId: true,
+                  queuedAt: true,
                 },
               })
             : Promise.resolve(null),
@@ -405,11 +397,19 @@ class MatchController {
                 courtId: { not: null },
               },
             },
-            include: {
-              player: true,
+            select: {
+              player: {
+                select: {
+                  name: true,
+                },
+              },
               match: {
-                include: {
-                  court: true,
+                select: {
+                  court: {
+                    select: {
+                      name: true,
+                    },
+                  },
                 },
               },
             },
@@ -438,34 +438,83 @@ class MatchController {
 
       const match = await prisma.$transaction(async (transaction) => {
         if (existingQueueMatch) {
-          await transaction.match.delete({
-            where: { id: existingQueueMatch.id },
-          });
+          const nextTeamAId =
+            existingQueueMatch.teamAId ??
+            (
+              await transaction.team.create({
+                data: {
+                  sportId: sportId as string,
+                  name: "Team A",
+                },
+              })
+            ).id;
+          const nextTeamBId =
+            existingQueueMatch.teamBId ??
+            (
+              await transaction.team.create({
+                data: {
+                  sportId: sportId as string,
+                  name: "Team B",
+                },
+              })
+            ).id;
 
           await Promise.all([
-            existingQueueMatch.teamAId
-              ? transaction.team.delete({
-                  where: { id: existingQueueMatch.teamAId },
-                })
-              : Promise.resolve(),
-            existingQueueMatch.teamBId
-              ? transaction.team.delete({
-                  where: { id: existingQueueMatch.teamBId },
-                })
-              : Promise.resolve(),
+            transaction.matchPlayer.deleteMany({
+              where: { matchId: existingQueueMatch.id },
+            }),
+            transaction.teamPlayer.deleteMany({
+              where: { teamId: nextTeamAId },
+            }),
+            transaction.teamPlayer.deleteMany({
+              where: { teamId: nextTeamBId },
+            }),
           ]);
-        }
 
-        await transaction.teamPlayer.deleteMany({
-          where: {
-            playerId: { in: requestedPlayerIds },
-            team: {
-              is: {
-                sportId: sportId as string,
-              },
+          await Promise.all([
+            transaction.teamPlayer.createMany({
+              data: normalizedTeamAPlayerIds.map((playerId) => ({
+                teamId: nextTeamAId,
+                playerId,
+              })),
+            }),
+            transaction.teamPlayer.createMany({
+              data: normalizedTeamBPlayerIds.map((playerId) => ({
+                teamId: nextTeamBId,
+                playerId,
+              })),
+            }),
+            transaction.matchPlayer.createMany({
+              data: [
+                ...normalizedTeamAPlayerIds.map((playerId) => ({
+                  matchId: existingQueueMatch.id,
+                  playerId,
+                  teamId: nextTeamAId,
+                })),
+                ...normalizedTeamBPlayerIds.map((playerId) => ({
+                  matchId: existingQueueMatch.id,
+                  playerId,
+                  teamId: nextTeamBId,
+                })),
+              ],
+            }),
+          ]);
+
+          return transaction.match.update({
+            where: { id: existingQueueMatch.id },
+            data: {
+              teamAId: nextTeamAId,
+              teamBId: nextTeamBId,
+              queuedAt: nextQueuedAt,
             },
-          },
-        });
+            select: {
+              id: true,
+              teamAId: true,
+              teamBId: true,
+              queuedAt: true,
+            },
+          });
+        }
 
         const [teamA, teamB] = await Promise.all([
           transaction.team.create({
@@ -516,16 +565,11 @@ class MatchController {
               ],
             },
           },
-          include: {
-            teamA: true,
-            teamB: true,
-            court: true,
-            matchPlayers: {
-              include: {
-                player: true,
-                team: true,
-              },
-            },
+          select: {
+            id: true,
+            teamAId: true,
+            teamBId: true,
+            queuedAt: true,
           },
         });
       });

@@ -967,11 +967,21 @@ const Home = () => {
       return false;
     }
 
+    const optimisticQueuedAt = queue.queuedAt ?? new Date().toISOString();
+
     try {
       setQueues((currentQueues) =>
         currentQueues.map((currentQueue) =>
           currentQueue.id === queueId
-            ? { ...currentQueue, isSubmitting: true, error: "" }
+            ? {
+                ...currentQueue,
+                teamAPlayerIds,
+                teamBPlayerIds,
+                selectedCourtId,
+                queuedAt: optimisticQueuedAt,
+                isSubmitting: true,
+                error: "",
+              }
             : currentQueue,
         ),
       );
@@ -986,7 +996,7 @@ const Home = () => {
           },
           body: JSON.stringify({
             matchId: queue.matchId,
-            queuedAt: queue.queuedAt ?? new Date().toISOString(),
+            queuedAt: optimisticQueuedAt,
             teamAPlayerIds,
             teamBPlayerIds,
           }),
@@ -1010,7 +1020,7 @@ const Home = () => {
                 teamAPlayerIds,
                 teamBPlayerIds,
                 selectedCourtId,
-                queuedAt: matchData.match.queuedAt ?? queue.queuedAt,
+                queuedAt: matchData.match.queuedAt ?? optimisticQueuedAt,
                 isSubmitting: false,
                 error: "",
               }
@@ -1024,7 +1034,7 @@ const Home = () => {
         currentQueues.map((currentQueue) =>
           currentQueue.id === queueId
             ? {
-                ...currentQueue,
+                ...queue,
                 isSubmitting: false,
                 error: error.message ?? "Unable to save queue",
               }
