@@ -1,6 +1,49 @@
 # PotatoContra
-# https://excalidraw.com/#json=FcZ4dSB_EHbDNN0Ms7MlV,WZcIAQt5rsz-93c1aut2KQ
 
-<img width="1190" height="784" alt="image" src="https://github.com/user-attachments/assets/27b1cd88-9ca6-406b-84a4-9e7fa1e3ee4e" />
+PotatoContra now includes a Docker setup for the full stack:
 
-<img width="481" height="304" alt="image" src="https://github.com/user-attachments/assets/92c5e098-1519-488f-aa00-33bd72bc63c5" />
+- `db`: PostgreSQL
+- `api`: Express + Prisma backend
+- `frontend`: Vite app served by Nginx
+
+## Run with Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+After the containers finish starting:
+
+- App: `http://localhost:8080`
+- API: `http://localhost:7007`
+- Postgres: `localhost:5432`
+
+To stop everything:
+
+```bash
+docker compose down
+```
+
+To stop and also remove the database volume:
+
+```bash
+docker compose down -v
+```
+
+## Environment
+
+The Docker setup uses this database connection inside containers:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@db:5432/potatocontra?schema=public"
+```
+
+For local non-Docker development, copy values from `.env.example` into `.env`.
+
+## Notes
+
+- The frontend proxies `/api` requests to the backend through Nginx.
+- The backend runs Prisma migrations automatically when the API container starts.
+- `CORS_ORIGIN` is now configurable so local dev and Docker can both work cleanly.

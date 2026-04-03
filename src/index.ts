@@ -12,11 +12,15 @@ import matchRoutes from "./routes/matchRoutes";
 
 const app = express();
 const port = process.env.PORT ?? "3000";
+const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:5173",
+    origin: corsOrigins,
   }),
 );
 app.use(express.json());
