@@ -9,7 +9,7 @@ const Sidebar = ({ sports, isLoading, error, isCollapsed }) => {
       className={`h-full w-full shrink-0 overflow-hidden rounded-[18px] bg-surface text-text transition-[max-height,width,opacity,border] duration-300 ease-out ${
         isCollapsed
           ? "max-h-0 border border-transparent opacity-0 md:max-h-none md:w-0"
-          : "max-h-[70vh] border border-border opacity-100 md:max-h-none md:w-[260px] lg:w-[280px]"
+          : "max-h-[70vh] border border-border opacity-100 md:max-h-none md:w-65 lg:w-70"
       }`}
     >
       <div

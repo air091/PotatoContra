@@ -57,7 +57,7 @@ const HomeLayout = () => {
   }, [isLoading, navigate, selectedSportId, sports]);
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-[1920px] flex-col overflow-hidden bg-secondary text-text">
+    <div className="mx-auto flex h-dvh w-full max-w-480 flex-col overflow-hidden bg-secondary text-text">
       <Header
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={() =>
