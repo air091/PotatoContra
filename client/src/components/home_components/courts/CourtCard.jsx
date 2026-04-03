@@ -94,16 +94,13 @@ const CourtCard = ({
       const scoreData =
         team === "teamA" ? { scoreA: newScore } : { scoreB: newScore };
 
-      const response = await apiFetch(
-        `/api/matches/${currentMatch.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(scoreData),
+      const response = await apiFetch(`/api/matches/${currentMatch.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify(scoreData),
+      });
 
       const data = await response.json();
 
