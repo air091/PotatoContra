@@ -14,6 +14,22 @@ const normalizePlayerIds = (value: unknown) => {
   return [...new Set(normalizedIds)];
 };
 
+const getIdsDifference = (nextIds: string[], currentIds: string[]) => {
+  const currentIdsSet = new Set(currentIds);
+  return nextIds.filter((id) => !currentIdsSet.has(id));
+};
+
+const getTeamPlayerIds = (
+  matchPlayers: { playerId: string; teamId: string }[],
+  teamId: string | null | undefined,
+) => {
+  if (!teamId) return [];
+
+  return matchPlayers
+    .filter((matchPlayer) => matchPlayer.teamId === teamId)
+    .map((matchPlayer) => matchPlayer.playerId);
+};
+
 class CourtController {
   static postCourt = async (request: Request, response: Response) => {
     try {
@@ -264,19 +280,9 @@ class CourtController {
       const { sportId, courtId } = request.params;
       const { scoreA, scoreB } = request.body ?? {};
 
-      const [sportExist, courtExist] = await Promise.all([
-        prisma.sport.findFirst({
-          where: { id: sportId as string },
-        }),
-        prisma.court.findFirst({
-          where: { id: courtId as string, sportId: sportId as string },
-        }),
-      ]);
-
-      if (!sportExist)
-        return response
-          .status(404)
-          .json({ success: false, message: "Sport not found" });
+      const courtExist = await prisma.court.findFirst({
+        where: { id: courtId as string, sportId: sportId as string },
+      });
 
       if (!courtExist)
         return response
@@ -289,16 +295,11 @@ class CourtController {
           courtId: courtId as string,
           endedAt: null,
         },
-        include: {
-          teamA: true,
-          teamB: true,
-          court: true,
-          matchPlayers: {
-            include: {
-              player: true,
-              team: true,
-            },
-          },
+        select: {
+          id: true,
+          startedAt: true,
+          teamAId: true,
+          teamBId: true,
         },
         orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
       });
@@ -319,9 +320,9 @@ class CourtController {
       let winnerTeamId: string | null = null;
       if (typeof scoreA === "number" && typeof scoreB === "number") {
         if (scoreA > scoreB) {
-          winnerTeamId = activeMatch.teamA?.id ?? null;
+          winnerTeamId = activeMatch.teamAId ?? null;
         } else if (scoreB > scoreA) {
-          winnerTeamId = activeMatch.teamB?.id ?? null;
+          winnerTeamId = activeMatch.teamBId ?? null;
         }
         // else it's a draw, winnerTeamId stays null
       }
@@ -335,16 +336,12 @@ class CourtController {
             scoreB: typeof scoreB === "number" ? scoreB : 0,
             winnerTeam: winnerTeamId,
           },
-          include: {
-            teamA: true,
-            teamB: true,
-            court: true,
-            matchPlayers: {
-              include: {
-                player: true,
-                team: true,
-              },
-            },
+          select: {
+            id: true,
+            endedAt: true,
+            scoreA: true,
+            scoreB: true,
+            winnerTeam: true,
           },
         });
 
@@ -383,19 +380,9 @@ class CourtController {
     try {
       const { sportId, courtId } = request.params;
 
-      const [sportExist, courtExist] = await Promise.all([
-        prisma.sport.findFirst({
-          where: { id: sportId as string },
-        }),
-        prisma.court.findFirst({
-          where: { id: courtId as string, sportId: sportId as string },
-        }),
-      ]);
-
-      if (!sportExist)
-        return response
-          .status(404)
-          .json({ success: false, message: "Sport not found" });
+      const courtExist = await prisma.court.findFirst({
+        where: { id: courtId as string, sportId: sportId as string },
+      });
 
       if (!courtExist)
         return response
@@ -408,14 +395,14 @@ class CourtController {
           courtId: courtId as string,
           endedAt: null,
         },
-        include: {
-          teamA: true,
-          teamB: true,
-          court: true,
+        select: {
+          id: true,
+          startedAt: true,
+          teamAId: true,
+          teamBId: true,
           matchPlayers: {
-            include: {
-              player: true,
-              team: true,
+            select: {
+              teamId: true,
             },
           },
         },
@@ -434,12 +421,18 @@ class CourtController {
           message: "This court session has already started",
         });
 
-      const teamAPlayerCount = activeMatch.matchPlayers.filter(
-        (matchPlayer) => matchPlayer.teamId === activeMatch.teamAId,
-      ).length;
-      const teamBPlayerCount = activeMatch.matchPlayers.filter(
-        (matchPlayer) => matchPlayer.teamId === activeMatch.teamBId,
-      ).length;
+      let teamAPlayerCount = 0;
+      let teamBPlayerCount = 0;
+
+      activeMatch.matchPlayers.forEach((matchPlayer) => {
+        if (matchPlayer.teamId === activeMatch.teamAId) {
+          teamAPlayerCount += 1;
+        }
+
+        if (matchPlayer.teamId === activeMatch.teamBId) {
+          teamBPlayerCount += 1;
+        }
+      });
 
       if (teamAPlayerCount === 0 || teamBPlayerCount === 0)
         return response.status(400).json({
@@ -593,6 +586,9 @@ class CourtController {
           sportId: sportId as string,
           id: { in: requestedPlayerIds },
         },
+        select: {
+          id: true,
+        },
       });
 
       if (players.length !== requestedPlayerIds.length)
@@ -610,11 +606,19 @@ class CourtController {
             courtId: { not: courtId as string },
           },
         },
-        include: {
-          player: true,
+        select: {
+          player: {
+            select: {
+              name: true,
+            },
+          },
           match: {
-            include: {
-              court: true,
+            select: {
+              court: {
+                select: {
+                  name: true,
+                },
+              },
             },
           },
         },
@@ -632,9 +636,16 @@ class CourtController {
           courtId: courtId as string,
           endedAt: null,
         },
-        include: {
-          teamA: true,
-          teamB: true,
+        select: {
+          id: true,
+          teamAId: true,
+          teamBId: true,
+          matchPlayers: {
+            select: {
+              playerId: true,
+              teamId: true,
+            },
+          },
         },
         orderBy: [{ startedAt: "desc" }, { queuedAt: "desc" }, { id: "desc" }],
       });
@@ -725,57 +736,133 @@ class CourtController {
             })
           ).id;
 
+        const currentTeamAPlayerIds = getTeamPlayerIds(
+          existingMatch.matchPlayers,
+          existingMatch.teamAId,
+        );
+        const currentTeamBPlayerIds = getTeamPlayerIds(
+          existingMatch.matchPlayers,
+          existingMatch.teamBId,
+        );
+
+        const teamAPlayerIdsToAdd = getIdsDifference(
+          normalizedTeamAPlayerIds,
+          currentTeamAPlayerIds,
+        );
+        const teamAPlayerIdsToRemove = getIdsDifference(
+          currentTeamAPlayerIds,
+          normalizedTeamAPlayerIds,
+        );
+        const teamBPlayerIdsToAdd = getIdsDifference(
+          normalizedTeamBPlayerIds,
+          currentTeamBPlayerIds,
+        );
+        const teamBPlayerIdsToRemove = getIdsDifference(
+          currentTeamBPlayerIds,
+          normalizedTeamBPlayerIds,
+        );
+
+        const nextPlayerTeamMap = new Map<string, string>();
+        normalizedTeamAPlayerIds.forEach((playerId) => {
+          nextPlayerTeamMap.set(playerId, nextTeamAId);
+        });
+        normalizedTeamBPlayerIds.forEach((playerId) => {
+          nextPlayerTeamMap.set(playerId, nextTeamBId);
+        });
+
+        const currentMatchPlayerIds = existingMatch.matchPlayers.map(
+          (matchPlayer) => matchPlayer.playerId,
+        );
+        const nextMatchPlayerIds = Array.from(nextPlayerTeamMap.keys());
+        const matchPlayerIdsToAdd = getIdsDifference(
+          nextMatchPlayerIds,
+          currentMatchPlayerIds,
+        );
+        const matchPlayerIdsToRemove = getIdsDifference(
+          currentMatchPlayerIds,
+          nextMatchPlayerIds,
+        );
+        const matchPlayersToMove = existingMatch.matchPlayers.filter(
+          (matchPlayer) => {
+            const nextTeamId = nextPlayerTeamMap.get(matchPlayer.playerId);
+            return !!nextTeamId && nextTeamId !== matchPlayer.teamId;
+          },
+        );
+
         await Promise.all([
-          transaction.teamPlayer.deleteMany({
-            where: { teamId: nextTeamAId },
-          }),
-          transaction.teamPlayer.deleteMany({
-            where: { teamId: nextTeamBId },
-          }),
-          transaction.matchPlayer.deleteMany({
-            where: { matchId: existingMatch.id },
-          }),
+          teamAPlayerIdsToRemove.length > 0
+            ? transaction.teamPlayer.deleteMany({
+                where: {
+                  teamId: nextTeamAId,
+                  playerId: { in: teamAPlayerIdsToRemove },
+                },
+              })
+            : Promise.resolve(),
+          teamBPlayerIdsToRemove.length > 0
+            ? transaction.teamPlayer.deleteMany({
+                where: {
+                  teamId: nextTeamBId,
+                  playerId: { in: teamBPlayerIdsToRemove },
+                },
+              })
+            : Promise.resolve(),
+          matchPlayerIdsToRemove.length > 0
+            ? transaction.matchPlayer.deleteMany({
+                where: {
+                  matchId: existingMatch.id,
+                  playerId: { in: matchPlayerIdsToRemove },
+                },
+              })
+            : Promise.resolve(),
         ]);
 
         await Promise.all([
-          transaction.teamPlayer.createMany({
-            data: normalizedTeamAPlayerIds.map((playerId) => ({
-              teamId: nextTeamAId,
-              playerId,
-            })),
-          }),
-          transaction.teamPlayer.createMany({
-            data: normalizedTeamBPlayerIds.map((playerId) => ({
-              teamId: nextTeamBId,
-              playerId,
-            })),
-          }),
-          transaction.matchPlayer.createMany({
-            data: [
-              ...normalizedTeamAPlayerIds.map((playerId) => ({
-                matchId: existingMatch.id,
-                playerId,
-                teamId: nextTeamAId,
-              })),
-              ...normalizedTeamBPlayerIds.map((playerId) => ({
-                matchId: existingMatch.id,
-                playerId,
-                teamId: nextTeamBId,
-              })),
-            ],
-          }),
+          teamAPlayerIdsToAdd.length > 0
+            ? transaction.teamPlayer.createMany({
+                data: teamAPlayerIdsToAdd.map((playerId) => ({
+                  teamId: nextTeamAId,
+                  playerId,
+                })),
+              })
+            : Promise.resolve(),
+          teamBPlayerIdsToAdd.length > 0
+            ? transaction.teamPlayer.createMany({
+                data: teamBPlayerIdsToAdd.map((playerId) => ({
+                  teamId: nextTeamBId,
+                  playerId,
+                })),
+              })
+            : Promise.resolve(),
+          matchPlayerIdsToAdd.length > 0
+            ? transaction.matchPlayer.createMany({
+                data: matchPlayerIdsToAdd.map((playerId) => ({
+                  matchId: existingMatch.id,
+                  playerId,
+                  teamId: nextPlayerTeamMap.get(playerId) as string,
+                })),
+              })
+            : Promise.resolve(),
+          ...matchPlayersToMove.map((matchPlayer) =>
+            transaction.matchPlayer.update({
+              where: {
+                matchId_playerId: {
+                  matchId: existingMatch.id,
+                  playerId: matchPlayer.playerId,
+                },
+              },
+              data: {
+                teamId: nextPlayerTeamMap.get(matchPlayer.playerId) as string,
+              },
+            }),
+          ),
         ]);
 
-        await transaction.match.update({
+        const match = await transaction.match.update({
           where: { id: existingMatch.id },
           data: {
             teamAId: nextTeamAId,
             teamBId: nextTeamBId,
           },
-        });
-
-        const match = await transaction.match.findUnique({
-          where: { id: existingMatch.id },
           include: {
             teamA: true,
             teamB: true,

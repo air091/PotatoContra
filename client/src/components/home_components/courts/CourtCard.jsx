@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import CourtEditMenu from "./CourtEditMenu";
 import formatElapsedTime from "./formatElapsedTime";
@@ -40,6 +40,7 @@ const CourtCard = ({
   setCourts,
 }) => {
   const [isUpdatingScore, setIsUpdatingScore] = useState(false);
+  const menuButtonRef = useRef(null);
   const currentMatch = court.currentMatch;
   const teamAPlayers =
     currentMatch?.matchPlayers?.filter(
@@ -76,7 +77,7 @@ const CourtCard = ({
         team === "teamA" ? { scoreA: newScore } : { scoreB: newScore };
 
       const response = await fetch(
-        `http://localhost:7007/api/matches/${currentMatch.id}`,
+        `/api/matches/${currentMatch.id}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -111,9 +112,13 @@ const CourtCard = ({
     <div className="relative border border-accent bg-border px-3 py-2 w-67 rounded-[10px]">
       <header className="flex items-start justify-between p-1">
         <div className="flex items-center gap-x-2.5">
-          <p className="text-[18px] font-md leading-tight text-text">{court.name}</p>
+          <p className="text-[18px] font-md leading-tight text-text">
+            {court.name}
+          </p>
           {elapsedTime ? (
-            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">
+              {elapsedTime}
+            </p>
           ) : null}
         </div>
 
@@ -128,9 +133,13 @@ const CourtCard = ({
                     handleStartCourt(court.id);
                   }}
                   disabled={isBusy}
-                  className="rounded-full px-2 py-1 bg-success cursor-pointer"
+                  className="rounded-full p-1 bg-success cursor-pointer"
                 >
-                  {startingCourtId === court.id ? <FaPlay size={14} /> : <FaPlay size={14} />}
+                  {startingCourtId === court.id ? (
+                    <FaPlay size={14} />
+                  ) : (
+                    <FaPlay size={14} />
+                  )}
                 </button>
               ) : null}
 
@@ -142,9 +151,13 @@ const CourtCard = ({
                     handleResetCourt(court.id);
                   }}
                   disabled={isBusy}
-                  className="rounded-full p-1 bg-primary cursor-pointer"
+                  className="rounded-full p-1 bg-primary cursor-pointer text-secondary"
                 >
-                  {resettingCourtId === court.id ? <RiResetLeftFill size={14} /> : <RiResetLeftFill size={14} />}
+                  {resettingCourtId === court.id ? (
+                    <RiResetLeftFill size={14} />
+                  ) : (
+                    <RiResetLeftFill size={14} />
+                  )}
                 </button>
               ) : null}
 
@@ -158,13 +171,18 @@ const CourtCard = ({
                   disabled={isBusy}
                   className="rounded-full text-xs p-1 bg-error text-text cursor-pointer"
                 >
-                  {endingCourtId === court.id ? <IoIosPause size={14} /> : <IoIosPause size={14} />}
+                  {endingCourtId === court.id ? (
+                    <IoIosPause size={14} />
+                  ) : (
+                    <IoIosPause size={14} />
+                  )}
                 </button>
               ) : null}
             </div>
-           ) : null}
+          ) : null}
 
           <button
+            ref={menuButtonRef}
             type="button"
             className="cursor-pointer block"
             onClick={(event) => {
@@ -175,7 +193,6 @@ const CourtCard = ({
             <IoEllipsisVertical size={14} className="text-text" />
           </button>
         </div>
-        
       </header>
 
       <div className="flex p-1 w-full">
@@ -198,25 +215,25 @@ const CourtCard = ({
 
           {currentMatch && currentMatch.startedAt ? (
             <div className="flex items-center gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
-                  disabled={isBusy}
-                  className="bg-error text-xs rounded-full text-text"
-                >
-                  <LuMinus size={20} />
-                </button>
-                <span className="w-6 text-center text-[18px] font-semibold text-text">
-                  {currentMatch.scoreA}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => updateScore("teamA", currentMatch.scoreA + 1)}
-                  disabled={isBusy}
-                  className="rounded-full text-xs text-text bg-success"
-                >
-                  <GoPlus size={20} />
-                </button>
+              <button
+                type="button"
+                onClick={() => updateScore("teamA", currentMatch.scoreA - 1)}
+                disabled={isBusy}
+                className="bg-error text-xs rounded-full text-text"
+              >
+                <LuMinus size={20} />
+              </button>
+              <span className="w-6 text-center text-[18px] font-semibold text-text">
+                {currentMatch.scoreA}
+              </span>
+              <button
+                type="button"
+                onClick={() => updateScore("teamA", currentMatch.scoreA + 1)}
+                disabled={isBusy}
+                className="rounded-full text-xs text-text bg-success"
+              >
+                <GoPlus size={20} />
+              </button>
             </div>
           ) : null}
         </div>
@@ -289,6 +306,7 @@ const CourtCard = ({
           resettingCourtId={resettingCourtId}
           endingCourtId={endingCourtId}
           isPlayersLoading={isPlayersLoading}
+          anchorRef={menuButtonRef}
         />
       ) : null}
     </div>

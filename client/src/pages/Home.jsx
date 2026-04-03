@@ -99,7 +99,7 @@ const Home = () => {
   const getPlayersMatchCountAPI = async (sportId) => {
     try {
       const response = await fetch(
-        `http://localhost:7007/api/players/matches-stats/${sportId}`,
+        `/api/players/matches-stats/${sportId}`,
         {
           method: "GET",
           credentials: "include",
@@ -143,7 +143,7 @@ const Home = () => {
         setCourtsError("");
 
         const response = await fetch(
-          `http://localhost:7007/api/sports/${selectedSport.id}/dashboard`,
+          `/api/sports/${selectedSport.id}/dashboard`,
           {
             method: "GET",
             credentials: "include",
@@ -359,7 +359,7 @@ const Home = () => {
       for (const currentPlayerName of playerNames) {
         try {
           const response = await fetch(
-            `http://localhost:7007/api/players/register/${selectedSport.id}`,
+            `/api/players/register/${selectedSport.id}`,
             {
               method: "POST",
               headers: {
@@ -424,7 +424,7 @@ const Home = () => {
       setEditPlayerError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/players/${activePlayerMenuId}`,
+        `/api/players/${activePlayerMenuId}`,
         {
           method: "PATCH",
           headers: {
@@ -469,7 +469,7 @@ const Home = () => {
       setEditPlayerError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/players/${playerId}`,
+        `/api/players/${playerId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -504,7 +504,7 @@ const Home = () => {
       setCourtsError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/sport/${selectedSport.id}/add`,
+        `/api/courts/sport/${selectedSport.id}/add`,
         {
           method: "POST",
           credentials: "include",
@@ -535,7 +535,7 @@ const Home = () => {
       setEditCourtError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}`,
+        `/api/courts/${courtId}/sport/${selectedSport.id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -598,7 +598,7 @@ const Home = () => {
       setEditCourtError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}/teams`,
+        `/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}/teams`,
         {
           method: "PATCH",
           headers: {
@@ -638,13 +638,35 @@ const Home = () => {
   };
 
   const handleStartCourt = async (courtId) => {
+    const optimisticStartedAt = new Date().toISOString();
+    let previousCourtSnapshot = null;
+
     try {
       setStartingCourtId(courtId);
       setCourtsError("");
       setEditCourtError("");
+      setCourts((currentCourts) =>
+        currentCourts.map((court) => {
+          if (court.id !== courtId) return court;
+
+          previousCourtSnapshot = court;
+
+          if (!court.currentMatch || court.currentMatch.startedAt) {
+            return court;
+          }
+
+          return {
+            ...court,
+            currentMatch: {
+              ...court.currentMatch,
+              startedAt: optimisticStartedAt,
+            },
+          };
+        }),
+      );
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/start`,
+        `/api/courts/${courtId}/sport/${selectedSport.id}/start`,
         {
           method: "PATCH",
           credentials: "include",
@@ -664,6 +686,14 @@ const Home = () => {
         ),
       );
     } catch (startCourtError) {
+      if (previousCourtSnapshot) {
+        setCourts((currentCourts) =>
+          currentCourts.map((court) =>
+            court.id === courtId ? previousCourtSnapshot : court,
+          ),
+        );
+      }
+
       console.error("Start court failed", startCourtError);
       setCourtsError(startCourtError.message ?? "Unable to start court.");
     } finally {
@@ -678,7 +708,7 @@ const Home = () => {
       setEditCourtError("");
 
       const response = await fetch(
-        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/reset`,
+        `/api/courts/${courtId}/sport/${selectedSport.id}/reset`,
         {
           method: "PATCH",
           credentials: "include",
@@ -713,6 +743,8 @@ const Home = () => {
   };
 
   const handleEndCourt = async (courtId) => {
+    let previousCourtSnapshot = null;
+
     try {
       setEndingCourtId(courtId);
       setCourtsError("");
@@ -722,8 +754,21 @@ const Home = () => {
       const scoreA = court?.currentMatch?.scoreA ?? 0;
       const scoreB = court?.currentMatch?.scoreB ?? 0;
 
+      setCourts((currentCourts) =>
+        currentCourts.map((currentCourt) => {
+          if (currentCourt.id !== courtId) return currentCourt;
+
+          previousCourtSnapshot = currentCourt;
+
+          return {
+            ...currentCourt,
+            currentMatch: null,
+          };
+        }),
+      );
+
       const response = await fetch(
-        `http://localhost:7007/api/courts/${courtId}/sport/${selectedSport.id}/end`,
+        `/api/courts/${courtId}/sport/${selectedSport.id}/end`,
         {
           method: "PATCH",
           credentials: "include",
@@ -743,10 +788,10 @@ const Home = () => {
       }
 
       setCourts((currentCourts) =>
-        currentCourts.map((court) =>
-          court.id === courtId
-            ? { ...court, ...data.court, currentMatch: null }
-            : court,
+        currentCourts.map((currentCourt) =>
+          currentCourt.id === courtId
+            ? { ...currentCourt, ...data.court, currentMatch: null }
+            : currentCourt,
         ),
       );
 
@@ -758,8 +803,16 @@ const Home = () => {
       }
 
       // Refetch player match counts to show updated data immediately
-      await getPlayersMatchCountAPI(selectedSport.id);
+      void getPlayersMatchCountAPI(selectedSport.id);
     } catch (endCourtError) {
+      if (previousCourtSnapshot) {
+        setCourts((currentCourts) =>
+          currentCourts.map((currentCourt) =>
+            currentCourt.id === courtId ? previousCourtSnapshot : currentCourt,
+          ),
+        );
+      }
+
       console.error("End court failed", endCourtError);
       setCourtsError(endCourtError.message ?? "Unable to end court.");
     } finally {
@@ -787,7 +840,7 @@ const Home = () => {
     }
 
     const deleteMatchResponse = await fetch(
-      `http://localhost:7007/api/matches/${queue.matchId}`,
+      `/api/matches/${queue.matchId}`,
       {
         method: "DELETE",
         credentials: "include",
@@ -801,7 +854,7 @@ const Home = () => {
 
     if (queue.teamAId) {
       const teamADeleteResponse = await fetch(
-        `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
+        `/api/teams/sports/${selectedSport.id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -820,7 +873,7 @@ const Home = () => {
 
     if (queue.teamBId) {
       const teamBDeleteResponse = await fetch(
-        `http://localhost:7007/api/teams/sports/${selectedSport.id}`,
+        `/api/teams/sports/${selectedSport.id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -902,7 +955,7 @@ const Home = () => {
       );
 
       const matchResponse = await fetch(
-        `http://localhost:7007/api/matches/sports/${selectedSport.id}/queue`,
+        `/api/matches/sports/${selectedSport.id}/queue`,
         {
           method: "POST",
           credentials: "include",
@@ -1029,7 +1082,7 @@ const Home = () => {
       );
 
       const assignCourtResponse = await fetch(
-        `http://localhost:7007/api/matches/${queue.matchId}`,
+        `/api/matches/${queue.matchId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -1049,7 +1102,7 @@ const Home = () => {
       }
 
       const startResponse = await fetch(
-        `http://localhost:7007/api/courts/${selectedCourt.id}/sport/${selectedSport.id}/start`,
+        `/api/courts/${selectedCourt.id}/sport/${selectedSport.id}/start`,
         {
           method: "PATCH",
           credentials: "include",

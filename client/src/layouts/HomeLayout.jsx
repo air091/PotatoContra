@@ -20,7 +20,7 @@ const HomeLayout = () => {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch("http://localhost:7007/api/sports", {
+        const response = await fetch("/api/sports", {
           method: "GET",
           credentials: "include",
         });

@@ -1,4 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { IoEllipsisVertical } from "react-icons/io5";
 import formatElapsedTime from "./formatElapsedTime";
 
@@ -15,6 +22,9 @@ const QueueCard = ({
 }) => {
   const [isQueueMenuOpen, setIsQueueMenuOpen] = useState(false);
   const [timerNow, setTimerNow] = useState(() => Date.now());
+  const menuButtonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [draftTeamAPlayerIds, setDraftTeamAPlayerIds] = useState(
     queue.teamAPlayerIds,
   );
@@ -24,7 +34,6 @@ const QueueCard = ({
   const [draftSelectedCourtId, setDraftSelectedCourtId] = useState(
     queue.selectedCourtId,
   );
-  const totalQueued = queue.teamAPlayerIds.length + queue.teamBPlayerIds.length;
   const teamAPlayers = players.filter((player) =>
     queue.teamAPlayerIds.includes(player.id),
   );
@@ -36,10 +45,21 @@ const QueueCard = ({
     draftTeamAPlayerIds.length > 0 &&
     draftTeamBPlayerIds.length > 0 &&
     !queue.isSubmitting;
-  const canStart = !!queue.queuedAt && !!queue.selectedCourtId && !queue.isSubmitting;
+  const canStart =
+    !!queue.queuedAt && !!queue.selectedCourtId && !queue.isSubmitting;
   const selectedCourt = availableCourts.find(
     (court) => String(court.id) === queue.selectedCourtId,
   );
+  const closeQueueMenu = useCallback(() => {
+    setDraftTeamAPlayerIds(queue.teamAPlayerIds);
+    setDraftTeamBPlayerIds(queue.teamBPlayerIds);
+    setDraftSelectedCourtId(queue.selectedCourtId);
+    setIsQueueMenuOpen(false);
+  }, [
+    queue.selectedCourtId,
+    queue.teamAPlayerIds,
+    queue.teamBPlayerIds,
+  ]);
 
   useEffect(() => {
     if (!queue.queuedAt) return undefined;
@@ -53,18 +73,60 @@ const QueueCard = ({
     };
   }, [queue.queuedAt]);
 
+  useLayoutEffect(() => {
+    if (!isQueueMenuOpen) return undefined;
+
+    const updateMenuPosition = () => {
+      if (!menuButtonRef.current || !menuRef.current) return;
+
+      const anchorRect = menuButtonRef.current.getBoundingClientRect();
+      const currentMenuRect = menuRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const gap = 8;
+
+      let left = anchorRect.right - currentMenuRect.width;
+      left = Math.min(
+        Math.max(gap, left),
+        Math.max(gap, viewportWidth - currentMenuRect.width - gap),
+      );
+
+      let top = anchorRect.bottom + gap;
+      const maxTop = viewportHeight - currentMenuRect.height - gap;
+
+      if (top > maxTop) {
+        top = Math.max(gap, anchorRect.top - currentMenuRect.height - gap);
+      }
+
+      setMenuPosition({ top, left });
+    };
+
+    updateMenuPosition();
+
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [isQueueMenuOpen]);
+
   useEffect(() => {
-    if (isQueueMenuOpen) {
-      setDraftTeamAPlayerIds(queue.teamAPlayerIds);
-      setDraftTeamBPlayerIds(queue.teamBPlayerIds);
-      setDraftSelectedCourtId(queue.selectedCourtId);
-    }
-  }, [
-    isQueueMenuOpen,
-    queue.teamAPlayerIds,
-    queue.teamBPlayerIds,
-    queue.selectedCourtId,
-  ]);
+    if (!isQueueMenuOpen) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        closeQueueMenu();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [closeQueueMenu, isQueueMenuOpen]);
 
   const toggleDraftPlayer = (teamKey, playerId) => {
     if (teamKey === "A") {
@@ -108,33 +170,43 @@ const QueueCard = ({
             {queue.queuedAt ? "Queued" : `${totalQueued} players queued`}
           </p> */}
           {elapsedTime ? (
-            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime} | {selectedCourt?.name ?? "Unavailable"}
-              </p>
+            <p className="text-[12px] text-stone-400 leading-tight">
+              {elapsedTime} | {selectedCourt?.name ?? "Unavailable"}
+            </p>
           ) : null}
         </div>
 
         <div className="flex items-center gap-x-1.5">
           {queue.queuedAt ? (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleLaunchQueuedMatch(queue.id);
-                }}
-                disabled={!canStart}
-                className="px-2 py-1 text-xs block bg-success rounded-xs"
-              >
-                {queue.isSubmitting ? "Transferring..." : "Transfer"}
-              </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleLaunchQueuedMatch(queue.id);
+              }}
+              disabled={!canStart}
+              className="px-2 py-1 text-xs block bg-success rounded-xs"
+            >
+              {queue.isSubmitting ? "Transferring..." : "Transfer"}
+            </button>
           ) : null}
 
           <button
-          type="button"
-          className="cursor-pointer text-text"
-          onClick={(event) => {
-            event.stopPropagation();
-            setIsQueueMenuOpen(!isQueueMenuOpen);
-          }}
+            ref={menuButtonRef}
+            type="button"
+            className="cursor-pointer text-text"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (isQueueMenuOpen) {
+                closeQueueMenu();
+                return;
+              }
+
+              setDraftTeamAPlayerIds(queue.teamAPlayerIds);
+              setDraftTeamBPlayerIds(queue.teamBPlayerIds);
+              setDraftSelectedCourtId(queue.selectedCourtId);
+              setIsQueueMenuOpen(true);
+            }}
           >
             <IoEllipsisVertical />
           </button>
@@ -179,13 +251,18 @@ const QueueCard = ({
         </div>
       </div>
 
-      
-
-      {isQueueMenuOpen && (
-        <div
-          className="absolute right-0 top-12 z-10 w-md max-w-sm rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
+      {isQueueMenuOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[999]" onClick={closeQueueMenu}>
+            <div
+              ref={menuRef}
+              style={{
+                top: `${menuPosition.top}px`,
+                left: `${menuPosition.left}px`,
+              }}
+              className="absolute w-[min(32rem,calc(100vw-1rem))] rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -203,7 +280,9 @@ const QueueCard = ({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="mb-2 text-xs font-semibold text-stone-400">Team A</p>
+                <p className="mb-2 text-xs font-semibold text-stone-400">
+                  Team A
+                </p>
                 <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
                   {players.map((player) => {
                     const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
@@ -232,7 +311,9 @@ const QueueCard = ({
                             checked={isOnTeamA}
                             onChange={() => toggleDraftPlayer("A", player.id)}
                             disabled={
-                              queue.isSubmitting || isPlayersLoading || isUnavailable
+                              queue.isSubmitting ||
+                              isPlayersLoading ||
+                              isUnavailable
                             }
                             className="accent-primary"
                           />
@@ -266,7 +347,9 @@ const QueueCard = ({
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold text-stone-400">Team B</p>
+                <p className="mb-2 text-xs font-semibold text-stone-400">
+                  Team B
+                </p>
                 <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
                   {players.map((player) => {
                     const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
@@ -295,7 +378,9 @@ const QueueCard = ({
                             checked={isOnTeamB}
                             onChange={() => toggleDraftPlayer("B", player.id)}
                             disabled={
-                              queue.isSubmitting || isPlayersLoading || isUnavailable
+                              queue.isSubmitting ||
+                              isPlayersLoading ||
+                              isUnavailable
                             }
                             className="accent-primary"
                           />
@@ -363,12 +448,7 @@ const QueueCard = ({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setDraftTeamAPlayerIds(queue.teamAPlayerIds);
-                  setDraftTeamBPlayerIds(queue.teamBPlayerIds);
-                  setDraftSelectedCourtId(queue.selectedCourtId);
-                  setIsQueueMenuOpen(false);
-                }}
+                onClick={closeQueueMenu}
                 disabled={queue.isSubmitting}
                 className="rounded-[10px] border border-border bg-border px-3 py-2 text-xs text-text transition-colors hover:bg-accent"
               >
@@ -391,8 +471,10 @@ const QueueCard = ({
               </button>
             </div>
           </form>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {queue.error ? (
         <p className="mt-1.5 text-xs text-error">{queue.error}</p>

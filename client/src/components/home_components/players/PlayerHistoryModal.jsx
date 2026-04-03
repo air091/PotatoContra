@@ -19,7 +19,7 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
         setError("");
 
         const response = await fetch(
-          `http://localhost:7007/api/players/${playerId}/history`,
+          `/api/players/${playerId}/history`,
           {
             method: "GET",
             credentials: "include",
