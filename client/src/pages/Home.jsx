@@ -1299,7 +1299,7 @@ const Home = () => {
 
   return (
     <>
-      <main className="border px-6 py-5 flex gap-x-2.5 bg-secondary">
+      <main className="px-6 py-5 flex gap-x-2.5 bg-secondary h-full">
         <PlayersPanel
           selectedSport={selectedSport}
           players={players}

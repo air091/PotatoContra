@@ -3,7 +3,7 @@ import { GiIncomingRocket } from "react-icons/gi";
 
 const Sidebar = ({ sports, isLoading, error }) => {
   return (
-    <nav className="w-65 py-5 bg-secondary text-text">
+    <nav className="w-full max-w-62.5 py-5 bg-secondary text-text">
       <div className="p-2.5 grid gap-y-2.5">
         <h3 className="px-1 py-1.5 font-md text-[18px]">Sports</h3>
         <ul className="px-1">
@@ -12,7 +12,7 @@ const Sidebar = ({ sports, isLoading, error }) => {
               <NavLink
                 to={`/sports/${sport.id}`}
                 className={({ isActive }) =>
-                  `flex items-center justify-start px-1 py-1.5 gap-x-2.5 rounded-sm text-[16px] ${isActive ? "font-normal bg-accent" : ""}`
+                  `flex items-center justify-start px-3 py-2 gap-x-2.5 rounded-md text-[16px] ${isActive ? "font-normal bg-accent" : ""}`
                 }
               >
                 {({ isActive }) => (

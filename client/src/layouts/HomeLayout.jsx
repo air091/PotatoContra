@@ -56,10 +56,10 @@ const HomeLayout = () => {
   }, [isLoading, navigate, selectedSportId, sports]);
 
   return (
-    <div>
+    <div className="w-full max-w-480 h-screen">
       <Header />
-      <main className="flex">
-      <Sidebar sports={sports} isLoading={isLoading} error={error} />
+      <main className="flex h-full">
+        <Sidebar sports={sports} isLoading={isLoading} error={error} />
         <Outlet
           context={{
             sports,

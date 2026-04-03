@@ -76,7 +76,7 @@ const CourtsPanel = ({
 
   return (
     <div
-      className="w-full border"
+      className="w-full"
       onClick={() => {
         if (
           isUpdatingCourt ||

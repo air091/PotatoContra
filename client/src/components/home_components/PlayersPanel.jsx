@@ -27,7 +27,7 @@ const PlayersPanel = ({
 }) => {
   return (
     <div
-      className="border border-accent p-1.5 w-full max-w-79 rounded-[14px] bg-secondary"
+      className="border border-accent p-1.5 w-full max-w-105 rounded-[14px] bg-surface"
       onClick={() => {
         if (isUpdatingPlayer || deletingPlayerId) return;
 
