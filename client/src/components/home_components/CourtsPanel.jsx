@@ -94,7 +94,6 @@ const CourtsPanel = ({
         setEditCourtError("");
       }}
     >
-
       {!isCourtsLoading && !courtsError ? (
         <div className="grid min-h-0 flex-1 grid-rows-2 gap-y-5">
           <div className="court-cards grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 rounded-[14px] border border-border bg-surface p-2.5">
@@ -141,7 +140,7 @@ const CourtsPanel = ({
                   setCourts={setCourts}
                 />
               ))}
-                {courts.length >= 0 ? (
+              {courts.length >= 0 ? (
                 <button
                   type="button"
                   onClick={handleAddCourt}
@@ -174,10 +173,12 @@ const CourtsPanel = ({
                   handleDeleteQueue={handleDeleteQueue}
                   handleLaunchQueuedMatch={handleLaunchQueuedMatch}
                   availableCourts={availableCourts}
-                  unavailablePlayerAssignmentMap={new Map([
-                    ...getAssignedPlayerQueueMap(queues, queue.id),
-                    ...unavailablePlayerCourtMap,
-                  ])}
+                  unavailablePlayerAssignmentMap={
+                    new Map([
+                      ...getAssignedPlayerQueueMap(queues, queue.id),
+                      ...unavailablePlayerCourtMap,
+                    ])
+                  }
                   isPlayersLoading={isPlayersLoading}
                 />
               ))}
