@@ -1113,47 +1113,30 @@ const Home = () => {
         ),
       );
 
-      const assignCourtResponse = await fetch(
-        `/api/matches/${queue.matchId}`,
+      const launchResponse = await fetch(
+        `/api/matches/sports/${selectedSport.id}/queue/${queue.matchId}/launch`,
         {
-          method: "PATCH",
+          method: "POST",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             courtId: selectedCourt.id,
-          }),
+            }),
         },
       );
 
-      const assignCourtData = await assignCourtResponse.json();
+      const launchData = await launchResponse.json();
 
-      if (!assignCourtResponse.ok || !assignCourtData.success) {
-        throw new Error(assignCourtData?.message ?? "Failed to assign court");
-      }
-
-      const startResponse = await fetch(
-        `/api/courts/${selectedCourt.id}/sport/${selectedSport.id}/start`,
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const startData = await startResponse.json();
-
-      if (!startResponse.ok || !startData.success) {
-        throw new Error(startData?.message ?? "Failed to start match");
+      if (!launchResponse.ok || !launchData.success) {
+        throw new Error(launchData?.message ?? "Failed to transfer match");
       }
 
       setCourts((currentCourts) =>
         currentCourts.map((court) =>
           court.id === selectedCourt.id
-            ? { ...court, ...startData.court, currentMatch: startData.match }
+            ? { ...court, ...launchData.court, currentMatch: launchData.match }
             : court,
         ),
       );

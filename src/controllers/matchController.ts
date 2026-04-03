@@ -588,6 +588,156 @@ class MatchController {
     }
   };
 
+  static launchQueuedMatch = async (request: Request, response: Response) => {
+    try {
+      const { sportId, matchId } = request.params;
+      const { courtId } = request.body ?? {};
+
+      if (typeof courtId !== "string" || courtId.trim().length === 0)
+        return response.status(400).json({
+          success: false,
+          message: "courtId is required",
+        });
+
+      const [matchExist, courtExist] = await Promise.all([
+        prisma.match.findFirst({
+          where: {
+            id: matchId as string,
+            sportId: sportId as string,
+          },
+          select: {
+            id: true,
+            sportId: true,
+            courtId: true,
+            queuedAt: true,
+            startedAt: true,
+            endedAt: true,
+            teamAId: true,
+            teamBId: true,
+            matchPlayers: {
+              select: {
+                teamId: true,
+              },
+            },
+          },
+        }),
+        prisma.court.findFirst({
+          where: {
+            id: courtId.trim(),
+            sportId: sportId as string,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            sportId: true,
+            isActive: true,
+          },
+        }),
+      ]);
+
+      if (!matchExist)
+        return response.status(404).json({
+          success: false,
+          message: "Queue match not found",
+        });
+
+      if (!courtExist)
+        return response.status(404).json({
+          success: false,
+          message: "Court not found or inactive",
+        });
+
+      if (matchExist.startedAt)
+        return response.status(409).json({
+          success: false,
+          message: "This queue has already been started",
+        });
+
+      if (matchExist.endedAt)
+        return response.status(409).json({
+          success: false,
+          message: "This queue has already ended",
+        });
+
+      if (!matchExist.teamAId || !matchExist.teamBId)
+        return response.status(400).json({
+          success: false,
+          message: "Queue teams are incomplete",
+        });
+
+      let teamAPlayerCount = 0;
+      let teamBPlayerCount = 0;
+
+      matchExist.matchPlayers.forEach((matchPlayer) => {
+        if (matchPlayer.teamId === matchExist.teamAId) {
+          teamAPlayerCount += 1;
+        }
+
+        if (matchPlayer.teamId === matchExist.teamBId) {
+          teamBPlayerCount += 1;
+        }
+      });
+
+      if (teamAPlayerCount === 0 || teamBPlayerCount === 0)
+        return response.status(400).json({
+          success: false,
+          message:
+            "Start requires at least 1 player on Team A and 1 player on Team B",
+        });
+
+      const activeCourtMatch = await prisma.match.findFirst({
+        where: {
+          sportId: sportId as string,
+          courtId: courtId.trim(),
+          endedAt: null,
+          id: { not: matchExist.id },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (activeCourtMatch)
+        return response.status(409).json({
+          success: false,
+          message: "Selected court is no longer available.",
+        });
+
+      const match = await prisma.match.update({
+        where: { id: matchExist.id },
+        data: {
+          courtId: courtId.trim(),
+          startedAt: new Date(),
+        },
+        include: {
+          teamA: true,
+          teamB: true,
+          court: true,
+          matchPlayers: {
+            include: {
+              player: true,
+              team: true,
+            },
+          },
+        },
+      });
+
+      return response.status(200).json({
+        success: true,
+        court: courtExist,
+        match,
+      });
+    } catch (error: any) {
+      console.error(`Launch queued match failed ${error}`);
+      return response.status(500).json({
+        success: false,
+        message: "Launch queued match failed",
+        error_message: error.message,
+      });
+    }
+  };
+
   static patchMatch = async (request: Request, response: Response) => {
     try {
       const { matchId } = request.params;

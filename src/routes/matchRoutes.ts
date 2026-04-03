@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get("/sports/:sportId", MatchController.getMatches);
 router.post("/sports/:sportId/queue", MatchController.saveQueue);
+router.post("/sports/:sportId/queue/:matchId/launch", MatchController.launchQueuedMatch);
 router.post("/sports/:sportId", MatchController.postMatch);
 router.patch("/:matchId", MatchController.patchMatch);
 router.delete("/:matchId", MatchController.deleteMatch);
