@@ -7,6 +7,7 @@ const HomeLayout = () => {
   const [sports, setSports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const selectedSportMatch = useMatch("/sports/:sportId");
   const selectedSportId = selectedSportMatch?.params?.sportId ?? null;
@@ -56,10 +57,24 @@ const HomeLayout = () => {
   }, [isLoading, navigate, selectedSportId, sports]);
 
   return (
-    <div className="w-full max-w-480 h-screen">
-      <Header />
-      <main className="flex h-full">
-        <Sidebar sports={sports} isLoading={isLoading} error={error} />
+    <div className="mx-auto flex h-dvh w-full max-w-[1920px] flex-col overflow-hidden bg-secondary text-text">
+      <Header
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={() =>
+          setIsSidebarCollapsed((currentValue) => !currentValue)
+        }
+      />
+      <main
+        className={`flex min-h-0 flex-1 flex-col px-4 pb-4 md:flex-row md:px-6 md:pb-6 ${
+          isSidebarCollapsed ? "gap-0" : "gap-4"
+        }`}
+      >
+        <Sidebar
+          sports={sports}
+          isLoading={isLoading}
+          error={error}
+          isCollapsed={isSidebarCollapsed}
+        />
         <Outlet
           context={{
             sports,

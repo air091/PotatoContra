@@ -1,10 +1,22 @@
 import { NavLink } from "react-router-dom";
 import { GiIncomingRocket } from "react-icons/gi";
 
-const Sidebar = ({ sports, isLoading, error }) => {
+const Sidebar = ({ sports, isLoading, error, isCollapsed }) => {
   return (
-    <nav className="w-full max-w-62.5 py-5 bg-secondary text-text">
-      <div className="p-2.5 grid gap-y-2.5">
+    <nav
+      id="app-sidebar"
+      aria-hidden={isCollapsed}
+      className={`shrink-0 overflow-hidden rounded-[18px] bg-surface text-text transition-[max-height,width,opacity,border] duration-300 ease-out md:h-full ${
+        isCollapsed
+          ? "max-h-0 border border-transparent opacity-0 md:w-0"
+          : "max-h-[70vh] border border-border opacity-100 md:w-[260px] lg:w-[280px]"
+      }`}
+    >
+      <div
+        className={`grid gap-y-2.5 p-2.5 transition-opacity duration-200 md:max-h-full overflow-x-hidden md:overflow-y-auto ${
+          isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      >
         <h3 className="px-1 py-1.5 font-md text-[18px]">Sports</h3>
         <ul className="px-1">
           {sports.map((sport) => (
@@ -25,14 +37,12 @@ const Sidebar = ({ sports, isLoading, error }) => {
             </li>
           ))}
         </ul>
+        {isLoading ? <p className="px-3 py-2">Loading sports...</p> : null}
+        {!isLoading && !error && sports.length === 0 ? (
+          <p className="px-3 py-2">No sports yet.</p>
+        ) : null}
+        {error ? <p className="px-3 py-2">{error}</p> : null}
       </div>
-      
-
-      {isLoading ? <p className="px-3 py-2">Loading sports...</p> : null}
-      {!isLoading && !error && sports.length === 0 ? (
-        <p className="px-3 py-2">No sports yet.</p>
-      ) : null}
-      {error ? <p className="px-3 py-2">{error}</p> : null}
     </nav>
   );
 };

@@ -98,9 +98,9 @@ const QueueCard = ({
   };
 
   return (
-    <div className="relative border border-accent bg-border p-1.5 w-67 rounded-[10px]">
-      <div className="flex items-center justify-between p-1">
-        <div className="text-text gap-x-2.5">
+    <div className="relative border border-accent bg-border p-2 w-67 rounded-[10px]">
+      <div className="flex items-center justify-between p-1.5">
+        <div className="text-text">
           <p className="text-[18px] font-md leading-tight text-text">
             Queue {queueIndex + 1}
           </p>
@@ -141,7 +141,7 @@ const QueueCard = ({
         </div>
       </div>
 
-      <div className="flex p-1 w-full">
+      <div className="flex p-1.5 w-full">
         <div className="w-full grid justify-start gap-y-1">
           <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (

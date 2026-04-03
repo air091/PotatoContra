@@ -13,3 +13,26 @@
 
     --fornt-primary: "Google Sans", sans-serif;
 }
+
+:root {
+    font-family: "Google Sans", sans-serif;
+    color: var(--color-text);
+    background-color: var(--color-secondary);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100dvh;
+    background-color: var(--color-secondary);
+    overflow: hidden;
+}

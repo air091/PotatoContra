@@ -27,7 +27,7 @@ const PlayersPanel = ({
 }) => {
   return (
     <div
-      className="border border-accent p-1.5 w-full max-w-105 rounded-[14px] bg-surface"
+      className="flex min-h-0 w-full flex-col overflow-hidden rounded-[14px] border border-border bg-surface p-1.5 lg:max-w-[420px]"
       onClick={() => {
         if (isUpdatingPlayer || deletingPlayerId) return;
 
@@ -55,7 +55,7 @@ const PlayersPanel = ({
         </div>
       </header>
 
-      <div className="w-full p-3 rounded-[10px]">
+      <div className="min-h-0 w-full flex-1 overflow-y-auto rounded-[10px] p-3">
         {isPlayersLoading ? <p>Loading players...</p> : null}
         {!isPlayersLoading && playersError ? <p>{playersError}</p> : null}
         {!isPlayersLoading && !playersError && players.length === 0 ? (
@@ -63,7 +63,7 @@ const PlayersPanel = ({
         ) : null}
 
         {!isPlayersLoading && !playersError && players.length > 0 ? (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap content-start items-start justify-center gap-2">
             {players.map((player) => (
               <PlayerCard
                 key={player.id}
