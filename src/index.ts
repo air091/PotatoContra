@@ -1,4 +1,7 @@
 import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 
@@ -16,6 +19,9 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, "../client/dist");
 
 app.use(
   cors({
@@ -25,11 +31,28 @@ app.use(
 );
 app.use(express.json());
 
+app.get("/health", (_request, response) => {
+  response.status(200).json({ ok: true });
+});
+
 app.use("/api/sports", sportRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/courts", courtRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/matches", matchRoutes);
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+
+  app.use((request, response, next) => {
+    if (request.path.startsWith("/api") || request.path === "/health") {
+      next();
+      return;
+    }
+
+    response.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
 
 const startServer = () => {
   try {
