@@ -75,6 +75,8 @@ const HomeLayout = () => {
           error={error}
           isCollapsed={isSidebarCollapsed}
         />
+
+        <div className="min-h-0 flex flex-1 flex-col">
         <Outlet
           context={{
             sports,
@@ -83,6 +85,7 @@ const HomeLayout = () => {
             selectedSport,
           }}
         />
+        </div>
       </main>
     </div>
   );

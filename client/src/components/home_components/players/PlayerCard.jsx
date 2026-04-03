@@ -24,7 +24,7 @@ const PlayerCard = ({
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   return (
-    <div className="relative flex w-fit items-center justify-between gap-x-4 rounded border px-2 py-1 bg-primary">
+    <div className="relative flex w-fit items-center justify-between gap-x-4 rounded px-2 py-1 bg-primary">
       <div className="text-accent">
         <p className="text-sm font-semibold leading-tight">{player.name}</p>
         <p className="text-xs leading-tight">{player.skillLevel}</p>
