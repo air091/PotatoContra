@@ -98,87 +98,92 @@ const QueueCard = ({
   };
 
   return (
-    <div className="relative rounded border px-3 py-2 h-fit w-fit">
+    <div className="relative border border-accent bg-border px-3 py-2 w-61.5 rounded-[10px]">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold leading-tight">
+        <div className="text-text flex items-center gap-x-2.5">
+          <p className="text-[18px] font-md leading-tight text-text">
             Queue {queueIndex + 1}
           </p>
-          <p className="text-xs leading-tight">
+          {/* <p className="text-xs leading-tight">
             {queue.queuedAt ? "Queued" : `${totalQueued} players queued`}
-          </p>
+          </p> */}
           {elapsedTime ? (
-            <p className="text-xs leading-tight">Timer: {elapsedTime}</p>
+            <p className="text-[12px] text-stone-400 leading-tight">{elapsedTime}</p>
           ) : null}
         </div>
-        <button
+
+        <div>
+          {queue.queuedAt ? (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs font-semibold">
+                Court: {selectedCourt?.name ?? "Unavailable"}
+              </span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleLaunchQueuedMatch(queue.id);
+                }}
+                disabled={!canStart}
+                className="border px-2 py-1 text-xs"
+              >
+                {queue.isSubmitting ? "Starting..." : "Start"}
+              </button>
+            </div>
+          ) : null}
+
+          <button
           type="button"
-          className="cursor-pointer"
+          className="cursor-pointer text-text"
           onClick={(event) => {
             event.stopPropagation();
             setIsQueueMenuOpen(!isQueueMenuOpen);
           }}
-        >
-          <IoEllipsisVertical />
-        </button>
+          >
+            <IoEllipsisVertical />
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 flex gap-x-4 space-y-2">
-        <div>
-          <p className="text-xs font-semibold">Team A</p>
+      <div className="flex p-1 w-full">
+        <div className="w-full grid justify-start gap-y-1">
+          <p className="text-[14px] font-semibold text-text">Team A</p>
           {teamAPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="w-full flex flex-wrap flex-2 gap-1 justify-start">
               {teamAPlayers.map((player) => (
                 <span
                   key={`queue-preview-team-a-${player.id}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
         </div>
 
-        <div>
-          <p className="text-xs font-semibold">Team B</p>
+        <div className="w-full grid justify-end gap-y-1">
+          <p className="text-[14px] font-semibold text-text text-end">Team B</p>
           {teamBPlayers.length ? (
-            <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="flex flex-wrap flex-2 gap-1 justify-end">
               {teamBPlayers.map((player) => (
                 <span
                   key={`queue-preview-team-b-${player.id}`}
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="px-2 w-fit py-0.5 text-[14px] bg-primary text-accent font-md rounded-xs"
                 >
                   {player.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-xs">No players yet.</p>
+            <p className="text-[10px] text-text">No players yet.</p>
           )}
         </div>
       </div>
 
-      {queue.queuedAt ? (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-xs font-semibold">
-            Court: {selectedCourt?.name ?? "Unavailable"}
-          </span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleLaunchQueuedMatch(queue.id);
-            }}
-            disabled={!canStart}
-            className="border px-2 py-1 text-xs"
-          >
-            {queue.isSubmitting ? "Starting..." : "Start"}
-          </button>
-        </div>
-      ) : null}
+      
 
       {isQueueMenuOpen && (
         <div

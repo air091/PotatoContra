@@ -172,7 +172,7 @@ const CourtCard = ({
               openCourtMenu(court);
             }}
           >
-            <IoEllipsisVertical size={12} className="text-text" />
+            <IoEllipsisVertical size={14} className="text-text" />
           </button>
         </div>
         
@@ -221,7 +221,7 @@ const CourtCard = ({
           ) : null}
         </div>
 
-        <div className="w-full grid justify-end">
+        <div className="w-full grid justify-end gap-y-1">
           <p className="text-[14px] font-semibold text-text text-end">Team B</p>
 
           {teamBPlayers.length ? (
