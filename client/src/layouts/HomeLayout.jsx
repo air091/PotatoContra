@@ -2,12 +2,15 @@ import { Outlet, useMatch, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Sidebar from "../components/home_components/Sidebar";
 import Header from "../components/home_components/Header";
+import { apiFetch } from "../lib/api";
+import { resolveWorkspace } from "../lib/workspace";
 
 const HomeLayout = () => {
   const [sports, setSports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState(null);
   const navigate = useNavigate();
   const selectedSportMatch = useMatch("/sports/:sportId");
   const selectedSportId = selectedSportMatch?.params?.sportId ?? null;
@@ -15,37 +18,81 @@ const HomeLayout = () => {
     sports.find((sport) => sport.id === selectedSportId) ?? null;
 
   useEffect(() => {
-    const getSportsAPI = async () => {
+    let isCancelled = false;
+
+    const initializeWorkspace = async () => {
       try {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch("/api/sports", {
+        const workspace = await resolveWorkspace();
+        if (isCancelled) return;
+
+        setWorkspaceId(workspace.id);
+
+        const response = await apiFetch("/api/sports", {
           method: "GET",
-          credentials: "include",
         });
         const data = await response.json();
-
-        if (response.status === 404) {
-          setSports([]);
-          return;
-        }
 
         if (!response.ok || !data.success) {
           throw new Error(data?.message ?? "Sports API failed");
         }
 
-        setSports(data.sports);
+        setSports(data.sports ?? []);
       } catch (fetchError) {
+        if (isCancelled) return;
+
         console.error("Sports API failed", fetchError);
-        setError("Unable to load sports.");
+        setSports([]);
+        setError(
+          fetchError.message === "Unable to initialize workspace"
+            ? "Unable to initialize workspace."
+            : "Unable to load sports.",
+        );
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    getSportsAPI();
+    initializeWorkspace();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
+
+  const createSport = async (name) => {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      throw new Error("Sport name is required.");
+    }
+
+    const response = await apiFetch("/api/sports/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: trimmedName }),
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data?.message ?? "Unable to create sport.");
+    }
+
+    setSports((currentSports) => {
+      const nextSports = [...currentSports, data.sport];
+      nextSports.sort((sportA, sportB) => sportA.name.localeCompare(sportB.name));
+      return nextSports;
+    });
+    navigate(`/sports/${data.sport.id}`);
+
+    return data.sport;
+  };
 
   useEffect(() => {
     if (isLoading || sports.length === 0) return;
@@ -74,17 +121,20 @@ const HomeLayout = () => {
           isLoading={isLoading}
           error={error}
           isCollapsed={isSidebarCollapsed}
+          createSport={createSport}
         />
 
         <div className="min-h-0 flex flex-1 flex-col">
-        <Outlet
-          context={{
-            sports,
-            isLoading,
-            error,
-            selectedSport,
-          }}
-        />
+          <Outlet
+            context={{
+              sports,
+              isLoading,
+              error,
+              selectedSport,
+              workspaceId,
+              createSport,
+            }}
+          />
         </div>
       </main>
     </div>

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { requireWorkspaceId } from "../lib/workspace";
 
 const parseOptionalDate = (value: unknown) => {
   if (value === undefined) return undefined;
@@ -39,10 +40,16 @@ const normalizePlayerIds = (value: unknown) => {
 class MatchController {
   static getMatches = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
 
-      const sportExist = await prisma.sport.findUnique({
-        where: { id: sportId as string },
+      const sportExist = await prisma.sport.findFirst({
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -79,6 +86,9 @@ class MatchController {
 
   static postMatch = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const {
         teamAId,
@@ -94,8 +104,11 @@ class MatchController {
         teamBPlayerIds,
       } = request.body;
 
-      const sportExist = await prisma.sport.findUnique({
-        where: { id: sportId as string },
+      const sportExist = await prisma.sport.findFirst({
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -314,9 +327,24 @@ class MatchController {
 
   static saveQueue = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { matchId, queuedAt, teamAPlayerIds, teamBPlayerIds } =
         request.body ?? {};
+
+      const sportExist = await prisma.sport.findFirst({
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
+      });
+
+      if (!sportExist)
+        return response
+          .status(404)
+          .json({ success: false, message: "Sport not found" });
 
       const normalizedTeamAPlayerIds = normalizePlayerIds(teamAPlayerIds);
       const normalizedTeamBPlayerIds = normalizePlayerIds(teamBPlayerIds);
@@ -379,6 +407,7 @@ class MatchController {
                 where: {
                   id: matchId,
                   sportId: sportId as string,
+                  sport: { workspaceId },
                 },
                 select: {
                   id: true,
@@ -590,6 +619,9 @@ class MatchController {
 
   static launchQueuedMatch = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, matchId } = request.params;
       const { courtId } = request.body ?? {};
 
@@ -604,6 +636,7 @@ class MatchController {
           where: {
             id: matchId as string,
             sportId: sportId as string,
+            sport: { workspaceId },
           },
           select: {
             id: true,
@@ -626,6 +659,7 @@ class MatchController {
             id: courtId.trim(),
             sportId: sportId as string,
             isActive: true,
+            sport: { workspaceId },
           },
           select: {
             id: true,
@@ -740,6 +774,9 @@ class MatchController {
 
   static patchMatch = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { matchId } = request.params;
       const {
         teamAId,
@@ -797,8 +834,11 @@ class MatchController {
             message: "scoreB must be a non-negative integer",
           });
 
-        const matchExist = await prisma.match.findUnique({
-          where: { id: matchId as string },
+        const matchExist = await prisma.match.findFirst({
+          where: {
+            id: matchId as string,
+            sport: { workspaceId },
+          },
           select: {
             id: true,
             scoreA: true,
@@ -845,8 +885,11 @@ class MatchController {
         return response.status(200).json({ success: true, match });
       }
 
-      const matchExist = await prisma.match.findUnique({
-        where: { id: matchId as string },
+      const matchExist = await prisma.match.findFirst({
+        where: {
+          id: matchId as string,
+          sport: { workspaceId },
+        },
         include: {
           teamA: { include: { teamPlayers: true } },
           teamB: { include: { teamPlayers: true } },
@@ -1130,8 +1173,11 @@ class MatchController {
         });
       }
 
-      const updatedMatch = await prisma.match.findUnique({
-        where: { id: matchId as string },
+      const updatedMatch = await prisma.match.findFirst({
+        where: {
+          id: matchId as string,
+          sport: { workspaceId },
+        },
         include: {
           teamA: true,
           teamB: true,
@@ -1158,10 +1204,16 @@ class MatchController {
 
   static deleteMatch = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { matchId } = request.params;
 
-      const matchExist = await prisma.match.findUnique({
-        where: { id: matchId as string },
+      const matchExist = await prisma.match.findFirst({
+        where: {
+          id: matchId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!matchExist)

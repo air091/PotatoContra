@@ -1,12 +1,19 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { requireWorkspaceId } from "../lib/workspace";
 
 class TeamController {
   static postTeam = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -31,9 +38,15 @@ class TeamController {
 
   static getTeams = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -61,11 +74,17 @@ class TeamController {
 
   static deleteTeam = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { teamId } = request.body;
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -73,7 +92,13 @@ class TeamController {
           .status(404)
           .json({ success: false, message: "Sport not found" });
 
-      const teamExist = await prisma.team.findFirst({ where: { id: teamId } });
+      const teamExist = await prisma.team.findFirst({
+        where: {
+          id: teamId,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
+      });
       if (!teamExist)
         return response
           .status(404)
@@ -94,11 +119,17 @@ class TeamController {
 
   static postTeamPlayer = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { teamId, playerId } = request.body;
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -157,11 +188,17 @@ class TeamController {
 
   static deleteTeamPlayer = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { teamId, playerId } = request.body;
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)

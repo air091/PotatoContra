@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { requireWorkspaceId } from "../lib/workspace";
 
 const normalizePlayerIds = (value: unknown) => {
   if (!Array.isArray(value)) return "invalid";
@@ -33,11 +34,17 @@ const getTeamPlayerIds = (
 class CourtController {
   static postCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { name } = request.body ?? {};
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
       if (!sportExist)
         return response
@@ -78,9 +85,15 @@ class CourtController {
 
   static getCourts = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
       if (!sportExist)
         return response
@@ -131,9 +144,15 @@ class CourtController {
 
   static deleteCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
       if (!sportExist)
         return response
@@ -141,7 +160,11 @@ class CourtController {
           .json({ success: false, message: "Sport not found" });
 
       const courtExist = await prisma.court.findFirst({
-        where: { id: courtId as string, sportId: sportId as string },
+        where: {
+          id: courtId as string,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
       });
       if (!courtExist)
         return response
@@ -171,10 +194,17 @@ class CourtController {
 
   static resetCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
 
       const courtExist = await prisma.court.findFirst({
-        where: { id: courtId as string, sportId: sportId as string },
+        where: {
+          id: courtId as string,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!courtExist)
@@ -256,11 +286,18 @@ class CourtController {
 
   static endCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
       const { scoreA, scoreB } = request.body ?? {};
 
       const courtExist = await prisma.court.findFirst({
-        where: { id: courtId as string, sportId: sportId as string },
+        where: {
+          id: courtId as string,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!courtExist)
@@ -357,10 +394,17 @@ class CourtController {
 
   static startCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
 
       const courtExist = await prisma.court.findFirst({
-        where: { id: courtId as string, sportId: sportId as string },
+        where: {
+          id: courtId as string,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!courtExist)
@@ -455,6 +499,9 @@ class CourtController {
 
   static patchCourt = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
       const { name } = request.body ?? {};
 
@@ -465,7 +512,10 @@ class CourtController {
         });
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
       if (!sportExist)
         return response
@@ -473,7 +523,11 @@ class CourtController {
           .json({ success: false, message: "Sport not found" });
 
       const courtExist = await prisma.court.findFirst({
-        where: { id: courtId as string, sportId: sportId as string },
+        where: {
+          id: courtId as string,
+          sportId: sportId as string,
+          sport: { workspaceId },
+        },
       });
       if (!courtExist)
         return response
@@ -498,6 +552,9 @@ class CourtController {
 
   static patchCourtTeams = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId, courtId } = request.params;
       const { name, teamAPlayerIds, teamBPlayerIds } = request.body ?? {};
 
@@ -535,10 +592,17 @@ class CourtController {
 
       const [sportExist, courtExist] = await Promise.all([
         prisma.sport.findFirst({
-          where: { id: sportId as string },
+          where: {
+            id: sportId as string,
+            workspaceId,
+          },
         }),
         prisma.court.findFirst({
-          where: { id: courtId as string, sportId: sportId as string },
+          where: {
+            id: courtId as string,
+            sportId: sportId as string,
+            sport: { workspaceId },
+          },
         }),
       ]);
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { apiFetch } from "../../../lib/api";
 
 const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
   const [playerData, setPlayerData] = useState(null);
@@ -18,11 +19,10 @@ const PlayerHistoryModal = ({ playerId, isOpen, onClose }) => {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/players/${playerId}/history`,
           {
             method: "GET",
-            credentials: "include",
             signal: abortController.signal,
           },
         );

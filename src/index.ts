@@ -12,6 +12,7 @@ import playerRoutes from "./routes/playerRoutes";
 import courtRoutes from "./routes/courtRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import matchRoutes from "./routes/matchRoutes";
+import workspaceRoutes from "./routes/workspaceRoutes";
 
 const app = express();
 const port = process.env.PORT ?? "3000";
@@ -35,6 +36,7 @@ app.get("/health", (_request, response) => {
   response.status(200).json({ ok: true });
 });
 
+app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/sports", sportRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/courts", courtRoutes);

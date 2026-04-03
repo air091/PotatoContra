@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import AddPlayerModal from "../components/home_components/AddPlayerModal";
 import PlayersPanel from "../components/home_components/PlayersPanel";
 import CourtsPanel from "../components/home_components/CourtsPanel";
+import { apiFetch } from "../lib/api";
 
 const getTeamPlayerIds = (currentMatch, teamId) =>
   currentMatch?.matchPlayers
@@ -57,7 +58,8 @@ const mapMatchToQueue = (match, availableCourts) => ({
 });
 
 const Home = () => {
-  const { sports, isLoading, error, selectedSport } = useOutletContext();
+  const { sports, isLoading, error, selectedSport, createSport } =
+    useOutletContext();
   const [players, setPlayers] = useState([]);
   const [courts, setCourts] = useState([]);
   const [isPlayersLoading, setIsPlayersLoading] = useState(false);
@@ -88,6 +90,9 @@ const Home = () => {
   const [editCourtError, setEditCourtError] = useState("");
   const [playerMatchCounts, setPlayerMatchCounts] = useState({});
   const [queues, setQueues] = useState([]);
+  const [sportName, setSportName] = useState("");
+  const [sportError, setSportError] = useState("");
+  const [isCreatingSport, setIsCreatingSport] = useState(false);
   const unavailablePlayerCourtMap = getAssignedPlayerCourtMap(
     courts,
     activeCourtMenuId,
@@ -98,13 +103,9 @@ const Home = () => {
 
   const getPlayersMatchCountAPI = async (sportId) => {
     try {
-      const response = await fetch(
-        `/api/players/matches-stats/${sportId}`,
-        {
-          method: "GET",
-          credentials: "include",
-        },
-      );
+      const response = await apiFetch(`/api/players/matches-stats/${sportId}`, {
+        method: "GET",
+      });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -142,11 +143,10 @@ const Home = () => {
         setPlayersError("");
         setCourtsError("");
 
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/sports/${selectedSport.id}/dashboard`,
           {
             method: "GET",
-            credentials: "include",
             signal: abortController.signal,
           },
         );
@@ -358,14 +358,13 @@ const Home = () => {
 
       for (const currentPlayerName of playerNames) {
         try {
-          const response = await fetch(
+          const response = await apiFetch(
             `/api/players/register/${selectedSport.id}`,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              credentials: "include",
               body: JSON.stringify({ name: currentPlayerName }),
             },
           );
@@ -423,21 +422,17 @@ const Home = () => {
       setIsUpdatingPlayer(true);
       setEditPlayerError("");
 
-      const response = await fetch(
-        `/api/players/${activePlayerMenuId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: trimmedPlayerName,
-            skillLevel: editSkillLevel,
-            paymentStatus: editPaymentStatus,
-          }),
+      const response = await apiFetch(`/api/players/${activePlayerMenuId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          name: trimmedPlayerName,
+          skillLevel: editSkillLevel,
+          paymentStatus: editPaymentStatus,
+        }),
+      });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -468,13 +463,9 @@ const Home = () => {
       setDeletingPlayerId(playerId);
       setEditPlayerError("");
 
-      const response = await fetch(
-        `/api/players/${playerId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
-      );
+      const response = await apiFetch(`/api/players/${playerId}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok && response.status !== 204) {
         const data = await response.json();
@@ -503,11 +494,10 @@ const Home = () => {
       setIsCourtSubmitting(true);
       setCourtsError("");
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/sport/${selectedSport.id}/add`,
         {
           method: "POST",
-          credentials: "include",
         },
       );
       const data = await response.json();
@@ -534,11 +524,10 @@ const Home = () => {
       setCourtsError("");
       setEditCourtError("");
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/${courtId}/sport/${selectedSport.id}`,
         {
           method: "DELETE",
-          credentials: "include",
         },
       );
 
@@ -597,14 +586,13 @@ const Home = () => {
       setIsUpdatingCourt(true);
       setEditCourtError("");
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/${activeCourtMenuId}/sport/${selectedSport.id}/teams`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: "include",
           body: JSON.stringify({
             name: trimmedCourtName,
             teamAPlayerIds: editCourtTeamAPlayerIds,
@@ -665,11 +653,10 @@ const Home = () => {
         }),
       );
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/${courtId}/sport/${selectedSport.id}/start`,
         {
           method: "PATCH",
-          credentials: "include",
         },
       );
       const data = await response.json();
@@ -721,11 +708,10 @@ const Home = () => {
         }),
       );
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/${courtId}/sport/${selectedSport.id}/reset`,
         {
           method: "PATCH",
-          credentials: "include",
         },
       );
       const data = await response.json();
@@ -789,11 +775,10 @@ const Home = () => {
         }),
       );
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/courts/${courtId}/sport/${selectedSport.id}/end`,
         {
           method: "PATCH",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -861,13 +846,9 @@ const Home = () => {
       return;
     }
 
-    const deleteMatchResponse = await fetch(
-      `/api/matches/${queue.matchId}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      },
-    );
+    const deleteMatchResponse = await apiFetch(`/api/matches/${queue.matchId}`, {
+      method: "DELETE",
+    });
 
     if (!deleteMatchResponse.ok && deleteMatchResponse.status !== 204) {
       const errorData = await deleteMatchResponse.json();
@@ -875,11 +856,10 @@ const Home = () => {
     }
 
     if (queue.teamAId) {
-      const teamADeleteResponse = await fetch(
+      const teamADeleteResponse = await apiFetch(
         `/api/teams/sports/${selectedSport.id}`,
         {
           method: "DELETE",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -894,11 +874,10 @@ const Home = () => {
     }
 
     if (queue.teamBId) {
-      const teamBDeleteResponse = await fetch(
+      const teamBDeleteResponse = await apiFetch(
         `/api/teams/sports/${selectedSport.id}`,
         {
           method: "DELETE",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -986,11 +965,10 @@ const Home = () => {
         ),
       );
 
-      const matchResponse = await fetch(
+      const matchResponse = await apiFetch(
         `/api/matches/sports/${selectedSport.id}/queue`,
         {
           method: "POST",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -1061,7 +1039,10 @@ const Home = () => {
       return;
     }
 
-    if (queue.teamAPlayerIds.length === 0 || queue.teamBPlayerIds.length === 0) {
+    if (
+      queue.teamAPlayerIds.length === 0 ||
+      queue.teamBPlayerIds.length === 0
+    ) {
       setQueues((currentQueues) =>
         currentQueues.map((currentQueue) =>
           currentQueue.id === queueId
@@ -1113,17 +1094,16 @@ const Home = () => {
         ),
       );
 
-      const launchResponse = await fetch(
+      const launchResponse = await apiFetch(
         `/api/matches/sports/${selectedSport.id}/queue/${queue.matchId}/launch`,
         {
           method: "POST",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             courtId: selectedCourt.id,
-            }),
+          }),
         },
       );
 
@@ -1167,19 +1147,68 @@ const Home = () => {
     }
   };
 
-  const statusClassName =
-    "flex min-h-0 flex-1 items-center justify-center rounded-[18px] border border-accent bg-surface p-6 text-text";
+  const handleCreateSport = async (event) => {
+    event.preventDefault();
 
-  if (isLoading) return <section className={statusClassName}>Loading sports...</section>;
+    try {
+      setIsCreatingSport(true);
+      setSportError("");
+      await createSport(sportName);
+      setSportName("");
+    } catch (createSportError) {
+      console.error("Create sport failed", createSportError);
+      setSportError(createSportError.message ?? "Unable to create sport.");
+    } finally {
+      setIsCreatingSport(false);
+    }
+  };
+
+  const statusClassName =
+    "flex min-h-0 flex-1 items-center justify-center rounded-[18px] border border-border bg-surface p-6 text-text";
+
+  if (isLoading)
+    return <section className={statusClassName}>Loading sports...</section>;
   if (error) return <section className={statusClassName}>{error}</section>;
   if (sports.length === 0) {
     return (
-      <section className={statusClassName}>No sports available yet.</section>
+      <section className={statusClassName}>
+        <form
+          onSubmit={handleCreateSport}
+          className="flex w-full max-w-sm flex-col gap-3"
+        >
+          <h2 className="text-center text-lg font-semibold">
+            Create your first sport
+          </h2>
+          <input
+            type="text"
+            value={sportName}
+            onChange={(event) => setSportName(event.target.value)}
+            placeholder="Badminton"
+            className="rounded-xl border border-border bg-secondary px-4 py-3 text-text outline-none transition-colors focus:border-primary"
+            disabled={isCreatingSport}
+          />
+          <button
+            type="submit"
+            disabled={isCreatingSport}
+            className="rounded-xl bg-primary px-4 py-3 font-semibold text-secondary transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isCreatingSport ? "Creating sport..." : "Create sport"}
+          </button>
+          <p className="text-center text-sm text-stone-400">
+            This browser gets its own private workspace automatically.
+          </p>
+          {sportError ? (
+            <p className="text-center text-sm text-error">{sportError}</p>
+          ) : null}
+        </form>
+      </section>
     );
   }
   if (!selectedSport) {
     return (
-      <section className={statusClassName}>Select a sport from the sidebar.</section>
+      <section className={statusClassName}>
+        Select a sport from the sidebar.
+      </section>
     );
   }
 

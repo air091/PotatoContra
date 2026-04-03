@@ -1,14 +1,21 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import { SkillLevel } from "../../generated/prisma/enums";
+import { requireWorkspaceId } from "../lib/workspace";
 
 class PlayerController {
   static getPlayers = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -37,6 +44,9 @@ class PlayerController {
 
   static postPlayer = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
       const { name } = request.body;
       const playerName = name.trim();
@@ -47,7 +57,10 @@ class PlayerController {
           .json({ success: false, message: "Name is required" });
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sportExist)
@@ -71,6 +84,9 @@ class PlayerController {
 
   static patchPlayer = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { playerId } = request.params;
       const { name, sportId, skillLevel, paymentStatus } = request.body;
 
@@ -79,8 +95,11 @@ class PlayerController {
           .status(400)
           .json({ success: false, message: "playerId is required" });
 
-      const playerExist = await prisma.player.findUnique({
-        where: { id: playerId as string },
+      const playerExist = await prisma.player.findFirst({
+        where: {
+          id: playerId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!playerExist)
@@ -112,8 +131,11 @@ class PlayerController {
             message: "sportId must be a non-empty string",
           });
 
-        const sportExist = await prisma.sport.findUnique({
-          where: { id: sportId },
+        const sportExist = await prisma.sport.findFirst({
+          where: {
+            id: sportId,
+            workspaceId,
+          },
         });
 
         if (!sportExist)
@@ -184,6 +206,9 @@ class PlayerController {
 
   static deletePlayer = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { playerId } = request.params;
 
       if (!playerId)
@@ -191,8 +216,11 @@ class PlayerController {
           .status(400)
           .json({ success: false, message: "playerId is required" });
 
-      const player = await prisma.player.findUnique({
-        where: { id: playerId as string },
+      const player = await prisma.player.findFirst({
+        where: {
+          id: playerId as string,
+          sport: { workspaceId },
+        },
       });
 
       if (!player)
@@ -217,6 +245,9 @@ class PlayerController {
 
   static getPlayerHistory = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { playerId } = request.params;
 
       if (!playerId)
@@ -224,8 +255,11 @@ class PlayerController {
           .status(400)
           .json({ success: false, message: "playerId is required" });
 
-      const player = await prisma.player.findUnique({
-        where: { id: playerId as string },
+      const player = await prisma.player.findFirst({
+        where: {
+          id: playerId as string,
+          sport: { workspaceId },
+        },
         include: { sport: true },
       });
 
@@ -235,7 +269,12 @@ class PlayerController {
           .json({ success: false, message: "Player not found" });
 
       const history = await prisma.matchPlayer.findMany({
-        where: { playerId: playerId as string },
+        where: {
+          playerId: playerId as string,
+          match: {
+            sport: { workspaceId },
+          },
+        },
         include: {
           team: true,
           match: {
@@ -341,10 +380,16 @@ class PlayerController {
     response: Response,
   ) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
 
       const sportExist = await prisma.sport.findFirst({
-        where: { id: sportId as string },
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
       if (!sportExist)
         return response

@@ -7,6 +7,7 @@ import { LuMinus } from "react-icons/lu";
 import { IoIosPause } from "react-icons/io";
 import { RiResetLeftFill } from "react-icons/ri";
 import { FaPlay } from "react-icons/fa6";
+import { apiFetch } from "../../../lib/api";
 
 const CourtCard = ({
   court,
@@ -93,11 +94,10 @@ const CourtCard = ({
       const scoreData =
         team === "teamA" ? { scoreA: newScore } : { scoreB: newScore };
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/matches/${currentMatch.id}`,
         {
           method: "PATCH",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },

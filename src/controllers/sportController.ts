@@ -1,9 +1,13 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { requireWorkspaceId } from "../lib/workspace";
 
 class SportController {
   static postSport = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { name } = request.body;
 
       const sportName = name.trim();
@@ -12,8 +16,21 @@ class SportController {
           .status(400)
           .json({ success: false, message: "Name is required" });
 
+      const workspaceExist = await prisma.workspace.findUnique({
+        where: { id: workspaceId },
+      });
+
+      if (!workspaceExist)
+        return response.status(404).json({
+          success: false,
+          message: "Workspace not found",
+        });
+
       const isExist = await prisma.sport.findFirst({
-        where: { name: sportName },
+        where: {
+          name: sportName,
+          workspaceId,
+        },
       });
 
       if (isExist)
@@ -21,7 +38,12 @@ class SportController {
           .status(409)
           .json({ success: false, message: "Sport already exist" });
 
-      const sport = await prisma.sport.create({ data: { name } });
+      const sport = await prisma.sport.create({
+        data: {
+          name: sportName,
+          workspaceId,
+        },
+      });
       return response.status(201).json({ success: true, sport });
     } catch (error: any) {
       console.error(`Post sport failed ${error}`);
@@ -35,11 +57,13 @@ class SportController {
 
   static getSports = async (request: Request, response: Response) => {
     try {
-      const sports = await prisma.sport.findMany();
-      if (sports.length === 0)
-        return response
-          .status(404)
-          .json({ success: false, message: "No sports" });
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
+      const sports = await prisma.sport.findMany({
+        where: { workspaceId },
+        orderBy: { name: "asc" },
+      });
 
       return response.status(200).json({ success: true, sports });
     } catch (error: any) {
@@ -54,10 +78,16 @@ class SportController {
 
   static getSportDashboard = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
 
-      const sport = await prisma.sport.findUnique({
-        where: { id: sportId as string },
+      const sport = await prisma.sport.findFirst({
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sport)
@@ -159,10 +189,16 @@ class SportController {
 
   static deleteSport = async (request: Request, response: Response) => {
     try {
+      const workspaceId = requireWorkspaceId(request, response);
+      if (!workspaceId) return;
+
       const { sportId } = request.params;
 
-      const sport = await prisma.sport.findUnique({
-        where: { id: sportId as string },
+      const sport = await prisma.sport.findFirst({
+        where: {
+          id: sportId as string,
+          workspaceId,
+        },
       });
 
       if (!sport)

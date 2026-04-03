@@ -12,13 +12,24 @@ datasource db {
   provider = "postgresql"
 }
 
+model Workspace {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  sports    Sport[]
+}
+
 model Sport {
-  id        String @id @default(uuid())
-  name      String
-  players   Player[]
-  courts    Court[]
-  teams     Team[]
-  matches   Match[]
+  id          String    @id @default(uuid())
+  name        String
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  players     Player[]
+  courts      Court[]
+  teams       Team[]
+  matches     Match[]
+
+  @@index([workspaceId])
+  @@unique([workspaceId, name])
 }
 
 enum SkillLevel {
