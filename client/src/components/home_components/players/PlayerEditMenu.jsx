@@ -1,8 +1,15 @@
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import PlayerHistoryModal from "./PlayerHistoryModal";
 
 const PlayerEditMenu = ({
   player,
-  selectedSport,
   handleEditPlayer,
   editPlayerName,
   setEditPlayerName,
@@ -19,12 +26,83 @@ const PlayerEditMenu = ({
   matchesPlayed,
   isHistoryOpen,
   setIsHistoryOpen,
+  anchorRef,
 }) => {
-  return (
-    <div
-      className="absolute right-0 top-8 z-10 w-64 rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
-      onClick={(event) => event.stopPropagation()}
-    >
+  const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+
+  const closeMenu = useCallback(() => {
+    setActivePlayerMenuId(null);
+    setEditPlayerError("");
+  }, [setActivePlayerMenuId, setEditPlayerError]);
+
+  useLayoutEffect(() => {
+    const updateMenuPosition = () => {
+      if (!anchorRef?.current || !menuRef.current) return;
+
+      const anchorRect = anchorRef.current.getBoundingClientRect();
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const gap = 8;
+
+      let left = anchorRect.right - menuRect.width;
+      left = Math.min(
+        Math.max(gap, left),
+        Math.max(gap, viewportWidth - menuRect.width - gap),
+      );
+
+      let top = anchorRect.bottom + gap;
+      const maxTop = viewportHeight - menuRect.height - gap;
+
+      if (top > maxTop) {
+        top = Math.max(gap, anchorRect.top - menuRect.height - gap);
+      }
+
+      setMenuPosition({ top, left });
+    };
+
+    updateMenuPosition();
+
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [anchorRef]);
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        if (isHistoryOpen) {
+          setIsHistoryOpen(false);
+          return;
+        }
+
+        closeMenu();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [closeMenu, isHistoryOpen, setIsHistoryOpen]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[999]" onClick={closeMenu}>
+      <div
+        ref={menuRef}
+        style={{
+          top: `${menuPosition.top}px`,
+          left: `${menuPosition.left}px`,
+        }}
+        className="absolute w-64 rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
       <form onSubmit={handleEditPlayer} className="space-y-3">
         <label className="block">
           <span className="mb-1 block text-xs text-stone-400">Name</span>
@@ -93,10 +171,7 @@ const PlayerEditMenu = ({
         <div className="flex justify-end gap-2">
           <button
             type="button"
-            onClick={() => {
-              setActivePlayerMenuId(null);
-              setEditPlayerError("");
-            }}
+            onClick={closeMenu}
             disabled={isUpdatingPlayer || deletingPlayerId === player.id}
             className="rounded-[10px] border border-border bg-border px-2 py-1 text-xs text-text transition-colors hover:bg-accent"
           >
@@ -119,7 +194,9 @@ const PlayerEditMenu = ({
           </button>
         </div>
       </form>
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 };
 

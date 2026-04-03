@@ -55,11 +55,7 @@ const QueueCard = ({
     setDraftTeamBPlayerIds(queue.teamBPlayerIds);
     setDraftSelectedCourtId(queue.selectedCourtId);
     setIsQueueMenuOpen(false);
-  }, [
-    queue.selectedCourtId,
-    queue.teamAPlayerIds,
-    queue.teamBPlayerIds,
-  ]);
+  }, [queue.selectedCourtId, queue.teamAPlayerIds, queue.teamBPlayerIds]);
 
   useEffect(() => {
     if (!queue.queuedAt) return undefined;
@@ -253,224 +249,236 @@ const QueueCard = ({
 
       {isQueueMenuOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[999]" onClick={closeQueueMenu}>
+          <div className="fixed inset-0 z-999" onClick={closeQueueMenu}>
             <div
               ref={menuRef}
               style={{
                 top: `${menuPosition.top}px`,
                 left: `${menuPosition.left}px`,
               }}
-              className="absolute w-[min(32rem,calc(100vw-1rem))] rounded-[16px] border border-border bg-surface p-3 text-text shadow-2xl"
+              className="absolute w-[min(32rem,calc(100vw-1rem))] rounded-2xl border border-border bg-surface p-3 text-text shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const didSave = await handleSaveQueue(queue.id, {
-                teamAPlayerIds: draftTeamAPlayerIds,
-                teamBPlayerIds: draftTeamBPlayerIds,
-                selectedCourtId: draftSelectedCourtId,
-              });
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const didSave = await handleSaveQueue(queue.id, {
+                    teamAPlayerIds: draftTeamAPlayerIds,
+                    teamBPlayerIds: draftTeamBPlayerIds,
+                    selectedCourtId: draftSelectedCourtId,
+                  });
 
-              if (didSave) {
-                setIsQueueMenuOpen(false);
-              }
-            }}
-            className="space-y-3"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="mb-2 text-xs font-semibold text-stone-400">
-                  Team A
-                </p>
-                <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
-                  {players.map((player) => {
-                    const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
-                    const isOnTeamB = draftTeamBPlayerIds.includes(player.id);
-                    const assignedLabel = unavailablePlayerAssignmentMap.get(
-                      player.id,
-                    );
-                    const isUnavailable = !!assignedLabel;
-
-                    return (
-                      <label
-                        key={`queue-team-a-${player.id}`}
-                        className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
-                          isOnTeamA
-                            ? "border border-primary/50 bg-primary/15 text-text"
-                            : isOnTeamB
-                              ? "border border-border bg-accent text-stone-300"
-                              : isUnavailable
-                                ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
-                                : "border border-transparent text-text"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={isOnTeamA}
-                            onChange={() => toggleDraftPlayer("A", player.id)}
-                            disabled={
-                              queue.isSubmitting ||
-                              isPlayersLoading ||
-                              isUnavailable
-                            }
-                            className="accent-primary"
-                          />
-                          <span>{player.name}</span>
-                        </span>
-                        {isOnTeamA ? (
-                          <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
-                            A
-                          </span>
-                        ) : null}
-                        {!isOnTeamA && isOnTeamB ? (
-                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
-                            B
-                          </span>
-                        ) : null}
-                        {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
-                            {assignedLabel}
-                          </span>
-                        ) : null}
-                      </label>
-                    );
-                  })}
-                </div>
-                {draftTeamAPlayerIds.length > 0 && (
-                  <div className="mt-2 text-center text-xs font-semibold text-stone-300">
-                    {draftTeamAPlayerIds.length} player
-                    {draftTeamAPlayerIds.length !== 1 ? "s" : ""}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-semibold text-stone-400">
-                  Team B
-                </p>
-                <div className="max-h-40 space-y-2 overflow-y-auto rounded-[12px] border border-border bg-border p-2">
-                  {players.map((player) => {
-                    const isOnTeamA = draftTeamAPlayerIds.includes(player.id);
-                    const isOnTeamB = draftTeamBPlayerIds.includes(player.id);
-                    const assignedLabel = unavailablePlayerAssignmentMap.get(
-                      player.id,
-                    );
-                    const isUnavailable = !!assignedLabel;
-
-                    return (
-                      <label
-                        key={`queue-team-b-${player.id}`}
-                        className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
-                          isOnTeamB
-                            ? "border border-primary/50 bg-primary/15 text-text"
-                            : isOnTeamA
-                              ? "border border-border bg-accent text-stone-300"
-                              : isUnavailable
-                                ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
-                                : "border border-transparent text-text"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={isOnTeamB}
-                            onChange={() => toggleDraftPlayer("B", player.id)}
-                            disabled={
-                              queue.isSubmitting ||
-                              isPlayersLoading ||
-                              isUnavailable
-                            }
-                            className="accent-primary"
-                          />
-                          <span>{player.name}</span>
-                        </span>
-                        {isOnTeamB ? (
-                          <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
-                            B
-                          </span>
-                        ) : null}
-                        {!isOnTeamB && isOnTeamA ? (
-                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
-                            A
-                          </span>
-                        ) : null}
-                        {!isOnTeamA && !isOnTeamB && isUnavailable ? (
-                          <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
-                            {assignedLabel}
-                          </span>
-                        ) : null}
-                      </label>
-                    );
-                  })}
-                </div>
-                {draftTeamBPlayerIds.length > 0 && (
-                  <div className="mt-2 text-center text-xs font-semibold text-stone-300">
-                    {draftTeamBPlayerIds.length} player
-                    {draftTeamBPlayerIds.length !== 1 ? "s" : ""}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label
-                className="mb-2 block text-xs font-semibold text-stone-400"
-                htmlFor={`queue-court-select-${queue.id}`}
+                  if (didSave) {
+                    setIsQueueMenuOpen(false);
+                  }
+                }}
+                className="space-y-3"
               >
-                Court
-              </label>
-              <select
-                id={`queue-court-select-${queue.id}`}
-                value={draftSelectedCourtId ?? ""}
-                onChange={(event) =>
-                  setDraftSelectedCourtId(event.target.value || null)
-                }
-                disabled={availableCourts.length === 0 || queue.isSubmitting}
-                className="w-full rounded-[10px] border border-border bg-border px-2 py-2 text-xs text-text outline-none transition-colors focus:border-primary"
-              >
-                {availableCourts.length === 0 ? (
-                  <option value="">No available courts</option>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-stone-400">
+                      Team A
+                    </p>
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-border p-2">
+                      {players.map((player) => {
+                        const isOnTeamA = draftTeamAPlayerIds.includes(
+                          player.id,
+                        );
+                        const isOnTeamB = draftTeamBPlayerIds.includes(
+                          player.id,
+                        );
+                        const assignedLabel =
+                          unavailablePlayerAssignmentMap.get(player.id);
+                        const isUnavailable = !!assignedLabel;
+
+                        return (
+                          <label
+                            key={`queue-team-a-${player.id}`}
+                            className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
+                              isOnTeamA
+                                ? "border border-primary/50 bg-primary/15 text-text"
+                                : isOnTeamB
+                                  ? "border border-border bg-accent text-stone-300"
+                                  : isUnavailable
+                                    ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
+                                    : "border border-transparent text-text"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={isOnTeamA}
+                                onChange={() =>
+                                  toggleDraftPlayer("A", player.id)
+                                }
+                                disabled={
+                                  queue.isSubmitting ||
+                                  isPlayersLoading ||
+                                  isUnavailable
+                                }
+                                className="accent-primary"
+                              />
+                              <span>{player.name}</span>
+                            </span>
+                            {isOnTeamA ? (
+                              <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
+                                A
+                              </span>
+                            ) : null}
+                            {!isOnTeamA && isOnTeamB ? (
+                              <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
+                                B
+                              </span>
+                            ) : null}
+                            {!isOnTeamA && !isOnTeamB && isUnavailable ? (
+                              <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
+                                {assignedLabel}
+                              </span>
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {draftTeamAPlayerIds.length > 0 && (
+                      <div className="mt-2 text-center text-xs font-semibold text-stone-300">
+                        {draftTeamAPlayerIds.length} player
+                        {draftTeamAPlayerIds.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-stone-400">
+                      Team B
+                    </p>
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-border p-2">
+                      {players.map((player) => {
+                        const isOnTeamA = draftTeamAPlayerIds.includes(
+                          player.id,
+                        );
+                        const isOnTeamB = draftTeamBPlayerIds.includes(
+                          player.id,
+                        );
+                        const assignedLabel =
+                          unavailablePlayerAssignmentMap.get(player.id);
+                        const isUnavailable = !!assignedLabel;
+
+                        return (
+                          <label
+                            key={`queue-team-b-${player.id}`}
+                            className={`flex items-center justify-between gap-2 rounded px-1 py-0.5 text-xs cursor-pointer ${
+                              isOnTeamB
+                                ? "border border-primary/50 bg-primary/15 text-text"
+                                : isOnTeamA
+                                  ? "border border-border bg-accent text-stone-300"
+                                  : isUnavailable
+                                    ? "border border-border bg-secondary text-stone-500 cursor-not-allowed"
+                                    : "border border-transparent text-text"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={isOnTeamB}
+                                onChange={() =>
+                                  toggleDraftPlayer("B", player.id)
+                                }
+                                disabled={
+                                  queue.isSubmitting ||
+                                  isPlayersLoading ||
+                                  isUnavailable
+                                }
+                                className="accent-primary"
+                              />
+                              <span>{player.name}</span>
+                            </span>
+                            {isOnTeamB ? (
+                              <span className="rounded border border-primary/50 bg-primary/15 px-1 py-0.5 text-[10px] text-primary">
+                                B
+                              </span>
+                            ) : null}
+                            {!isOnTeamB && isOnTeamA ? (
+                              <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-300">
+                                A
+                              </span>
+                            ) : null}
+                            {!isOnTeamA && !isOnTeamB && isUnavailable ? (
+                              <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
+                                {assignedLabel}
+                              </span>
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {draftTeamBPlayerIds.length > 0 && (
+                      <div className="mt-2 text-center text-xs font-semibold text-stone-300">
+                        {draftTeamBPlayerIds.length} player
+                        {draftTeamBPlayerIds.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    className="mb-2 block text-xs font-semibold text-stone-400"
+                    htmlFor={`queue-court-select-${queue.id}`}
+                  >
+                    Court
+                  </label>
+                  <select
+                    id={`queue-court-select-${queue.id}`}
+                    value={draftSelectedCourtId ?? ""}
+                    onChange={(event) =>
+                      setDraftSelectedCourtId(event.target.value || null)
+                    }
+                    disabled={
+                      availableCourts.length === 0 || queue.isSubmitting
+                    }
+                    className="w-full rounded-[10px] border border-border bg-border px-2 py-2 text-xs text-text outline-none transition-colors focus:border-primary"
+                  >
+                    {availableCourts.length === 0 ? (
+                      <option value="">No available courts</option>
+                    ) : null}
+                    {availableCourts.map((court) => (
+                      <option key={court.id} value={String(court.id)}>
+                        {court.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {queue.error ? (
+                  <p className="text-xs text-error">{queue.error}</p>
                 ) : null}
-                {availableCourts.map((court) => (
-                  <option key={court.id} value={String(court.id)}>
-                    {court.name}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {queue.error ? (
-              <p className="text-xs text-error">{queue.error}</p>
-            ) : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeQueueMenu}
-                disabled={queue.isSubmitting}
-                className="rounded-[10px] border border-border bg-border px-3 py-2 text-xs text-text transition-colors hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteQueue(queue.id)}
-                disabled={queue.isSubmitting}
-                className="rounded-[10px] border border-error bg-error/15 px-3 py-2 text-xs text-error transition-colors hover:bg-error/25"
-              >
-                Delete
-              </button>
-              <button
-                type="submit"
-                disabled={!canSave}
-                className="rounded-[10px] border border-primary bg-primary px-3 py-2 text-xs font-medium text-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {queue.isSubmitting ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </form>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeQueueMenu}
+                    disabled={queue.isSubmitting}
+                    className="rounded-[10px] border border-border bg-border px-3 py-2 text-xs text-text transition-colors hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteQueue(queue.id)}
+                    disabled={queue.isSubmitting}
+                    className="rounded-[10px] border border-error bg-error/15 px-3 py-2 text-xs text-error transition-colors hover:bg-error/25"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!canSave}
+                    className="rounded-[10px] border border-primary bg-primary px-3 py-2 text-xs font-medium text-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {queue.isSubmitting ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>,
           document.body,

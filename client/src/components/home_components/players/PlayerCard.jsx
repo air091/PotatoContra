@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { IoEllipsisVertical } from "react-icons/io5";
 import PlayerEditMenu from "./PlayerEditMenu";
 
@@ -23,6 +23,8 @@ const PlayerCard = ({
   matchesPlayed,
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const menuButtonRef = useRef(null);
+
   return (
     <div className="relative flex w-fit items-center justify-between gap-x-4 rounded px-2 py-1 bg-primary">
       <div className="text-accent">
@@ -31,6 +33,7 @@ const PlayerCard = ({
       </div>
 
       <button
+        ref={menuButtonRef}
         type="button"
         className="cursor-pointer text-secondary"
         onClick={(event) => {
@@ -61,6 +64,7 @@ const PlayerCard = ({
           matchesPlayed={matchesPlayed}
           isHistoryOpen={isHistoryOpen}
           setIsHistoryOpen={setIsHistoryOpen}
+          anchorRef={menuButtonRef}
         />
       ) : null}
     </div>
