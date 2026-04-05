@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { attachPlayerStatuses } from "../lib/playerStatus";
 import { requireWorkspaceId } from "../lib/workspace";
 
 const DEFAULT_SPORT_NAME = "Badminton";
@@ -138,11 +139,15 @@ class SportController {
           orderBy: [{ queuedAt: "asc" }, { startedAt: "asc" }, { id: "asc" }],
         }),
       ]);
+      const playersWithStatuses = await attachPlayerStatuses(
+        sportId as string,
+        players,
+      );
 
       return response.status(200).json({
         success: true,
         sport,
-        players,
+        players: playersWithStatuses,
         playerMatchCounts: playerCountRows.map((player) => ({
           id: player.id,
           name: player.name,

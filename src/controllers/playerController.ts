@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import { SkillLevel } from "../../generated/prisma/enums";
+import { attachPlayerStatuses, PLAYER_STATUS } from "../lib/playerStatus";
 import { requireWorkspaceId } from "../lib/workspace";
 
 class PlayerController {
@@ -31,7 +32,10 @@ class PlayerController {
           .status(404)
           .json({ success: false, message: "No players" });
 
-      return response.status(200).json({ success: true, players });
+      return response.status(200).json({
+        success: true,
+        players: await attachPlayerStatuses(sportId as string, players),
+      });
     } catch (error: any) {
       console.error(`Get all players failed ${error}`);
       return response.status(500).json({
@@ -71,7 +75,13 @@ class PlayerController {
       const player = await prisma.player.create({
         data: { name: playerName, sportId: sportId as string },
       });
-      return response.status(201).json({ success: true, player });
+      return response.status(201).json({
+        success: true,
+        player: {
+          ...player,
+          playerStatus: PLAYER_STATUS.waiting,
+        },
+      });
     } catch (error: any) {
       console.error(`Post player failed ${error}`);
       return response.status(500).json({
@@ -189,10 +199,14 @@ class PlayerController {
         where: { id: playerId as string },
         data: updatedData,
       });
+      const [playerWithStatus] = await attachPlayerStatuses(
+        updatedPlayer.sportId,
+        [updatedPlayer],
+      );
 
       return response.status(200).json({
         success: true,
-        player: updatedPlayer,
+        player: playerWithStatus,
       });
     } catch (error: any) {
       console.error(`Update player failed ${error}`);

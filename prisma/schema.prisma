@@ -38,11 +38,18 @@ enum SkillLevel {
   expert
 }
 
+enum PlayerStatus {
+  waiting
+  playing
+  queued
+}
+
 model Player {
   id                String @id @default(uuid())
   name              String
   sportId           String
   skillLevel        SkillLevel @default(beginner)
+  playerStatus      PlayerStatus @default(waiting)
   paymentStatus     Boolean @default(false)
   createdAt         DateTime @default(now())
   sport             Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
@@ -52,14 +59,14 @@ model Player {
 }
 
 model Team {
-  id            String @id @default(uuid())
-  name          String?
-  sportId       String
-  sport         Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  teamPlayers   TeamPlayer[]
-  matchPlayers  MatchPlayer[]
-  teamAMatches  Match[] @relation("TeamA")
-  teamBMatches  Match[] @relation("TeamB")
+  id                String @id @default(uuid())
+  name              String?
+  sportId           String
+  sport             Sport @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamPlayers       TeamPlayer[]
+  matchPlayers      MatchPlayer[]
+  teamAMatches      Match[] @relation("TeamA")
+  teamBMatches      Match[] @relation("TeamB")
   @@index([sportId])
 }
 
@@ -85,22 +92,22 @@ model Court {
 }
 
 model Match {
-  id              String @id @default(uuid())
-  sportId         String
-  teamAId         String?
-  teamBId         String?
-  courtId         String?
-  queuedAt        DateTime?
-  startedAt       DateTime?
-  endedAt         DateTime?
-  scoreA          Int @default(0)
-  scoreB          Int @default(0)
-  winnerTeam      String?
-  sport           Sport           @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  teamA           Team?            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  teamB           Team?            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  court           Court?          @relation(fields: [courtId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  matchPlayers    MatchPlayer[]
+  id                String @id @default(uuid())
+  sportId           String
+  teamAId           String?
+  teamBId           String?
+  courtId           String?
+  queuedAt          DateTime?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  scoreA            Int @default(0)
+  scoreB            Int @default(0)
+  winnerTeam        String?
+  sport             Sport           @relation(fields: [sportId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamA             Team?            @relation("TeamA", fields: [teamAId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  teamB             Team?            @relation("TeamB", fields: [teamBId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  court             Court?          @relation(fields: [courtId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  matchPlayers      MatchPlayer[]
   @@index([sportId])
   @@index([teamAId])
   @@index([teamBId])
@@ -108,13 +115,13 @@ model Match {
 }
 
 model MatchPlayer {
-  matchId    String
-  playerId   String
-  teamId     String
-  createdAt  DateTime @default(now())
-  match      Match @relation(fields: [matchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  player     Player @relation(fields: [playerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  team       Team @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  matchId                   String
+  playerId                  String
+  teamId                    String
+  createdAt                 DateTime @default(now())
+  match                     Match @relation(fields: [matchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  player                    Player @relation(fields: [playerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  team                      Team @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@id([matchId, playerId])
   @@index([playerId])

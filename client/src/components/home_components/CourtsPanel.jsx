@@ -196,10 +196,6 @@ const CourtsPanel = ({
           </div>
         </div>
       ) : null}
-
-      {!isCourtsLoading && !courtsError && courts.length === 0 ? (
-        <p className="mt-3 text-sm">No courts yet.</p>
-      ) : null}
     </div>
   );
 };
