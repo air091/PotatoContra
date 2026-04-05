@@ -137,7 +137,7 @@ const CourtCard = ({
   };
 
   return (
-    <div className="relative border border-accent bg-border px-3 py-2 w-67 rounded-[10px]">
+    <div className="relative border border-accent bg-border px-3 py-2 w-full sm:w-67 rounded-[10px]">
       <header className="flex items-start justify-between p-1">
         <div className="flex items-center gap-x-2.5">
           <p className="text-[18px] font-md leading-tight text-text">
