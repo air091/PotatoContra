@@ -57,6 +57,10 @@ const CourtsPanel = ({
   availableCourts,
 }) => {
   const [timerNow, setTimerNow] = useState(() => Date.now());
+  const unavailablePlayerAssignmentMap = new Map([
+    ...getAssignedPlayerQueueMap(queues),
+    ...unavailablePlayerCourtMap,
+  ]);
 
   useEffect(() => {
     const hasStartedMatch = courts.some(
@@ -118,7 +122,7 @@ const CourtsPanel = ({
                   editCourtTeamAPlayerIds={editCourtTeamAPlayerIds}
                   editCourtTeamBPlayerIds={editCourtTeamBPlayerIds}
                   players={players}
-                  unavailablePlayerCourtMap={unavailablePlayerCourtMap}
+                  unavailablePlayerCourtMap={unavailablePlayerAssignmentMap}
                   toggleCourtPlayer={toggleCourtPlayer}
                   editCourtError={editCourtError}
                   handleDeleteCourt={handleDeleteCourt}

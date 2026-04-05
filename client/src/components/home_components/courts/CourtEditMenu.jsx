@@ -139,10 +139,10 @@ const CourtEditMenu = ({
                 {players.map((player) => {
                   const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                   const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
-                  const assignedCourtName = unavailablePlayerCourtMap.get(
+                  const assignedLabel = unavailablePlayerCourtMap.get(
                     player.id,
                   );
-                  const isUnavailable = !!assignedCourtName;
+                  const isUnavailable = !!assignedLabel;
 
                   return (
                     <label
@@ -179,7 +179,7 @@ const CourtEditMenu = ({
                       ) : null}
                       {!isOnTeamA && !isOnTeamB && isUnavailable ? (
                         <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
-                          On {assignedCourtName}
+                          Assigned to {assignedLabel}
                         </span>
                       ) : null}
                     </label>
@@ -196,10 +196,10 @@ const CourtEditMenu = ({
                 {players.map((player) => {
                   const isOnTeamA = editCourtTeamAPlayerIds.includes(player.id);
                   const isOnTeamB = editCourtTeamBPlayerIds.includes(player.id);
-                  const assignedCourtName = unavailablePlayerCourtMap.get(
+                  const assignedLabel = unavailablePlayerCourtMap.get(
                     player.id,
                   );
-                  const isUnavailable = !!assignedCourtName;
+                  const isUnavailable = !!assignedLabel;
 
                   return (
                     <label
@@ -236,7 +236,7 @@ const CourtEditMenu = ({
                       ) : null}
                       {!isOnTeamA && !isOnTeamB && isUnavailable ? (
                         <span className="rounded border border-border px-1 py-0.5 text-[10px] text-stone-400">
-                          On {assignedCourtName}
+                          Assigned to {assignedLabel}
                         </span>
                       ) : null}
                     </label>
