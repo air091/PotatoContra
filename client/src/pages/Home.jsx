@@ -57,6 +57,44 @@ const mapMatchToQueue = (match, availableCourts) => ({
   error: "",
 });
 
+const fetchDashboardData = async (sportId, signal) => {
+  const response = await apiFetch(`/api/sports/${sportId}/dashboard`, {
+    method: "GET",
+    signal,
+  });
+  const data = await response.json();
+
+  if (response.status === 404) {
+    return {
+      isNotFound: true,
+    };
+  }
+
+  if (!response.ok || !data.success) {
+    throw new Error(data?.message ?? "Dashboard API failed");
+  }
+
+  const nextCourts = data.courts ?? [];
+  const nextAvailableCourts = nextCourts.filter(
+    (court) => !court.currentMatch || court.currentMatch.endedAt,
+  );
+  const nextPlayerMatchCounts = {};
+
+  (data.playerMatchCounts ?? []).forEach((item) => {
+    nextPlayerMatchCounts[item.id] = item.matchesPlayed;
+  });
+
+  return {
+    isNotFound: false,
+    players: data.players ?? [],
+    courts: nextCourts,
+    playerMatchCounts: nextPlayerMatchCounts,
+    queues: (data.queuedMatches ?? []).map((match) =>
+      mapMatchToQueue(match, nextAvailableCourts),
+    ),
+  };
+};
+
 const Home = () => {
   const { sports, isLoading, error, selectedSport } = useOutletContext();
   const [players, setPlayers] = useState([]);
@@ -119,6 +157,53 @@ const Home = () => {
     }
   };
 
+  const applyDashboardData = (dashboardData) => {
+    if (dashboardData.isNotFound) {
+      setPlayers([]);
+      setCourts([]);
+      setQueues([]);
+      setPlayerMatchCounts({});
+      return;
+    }
+
+    setPlayers(dashboardData.players);
+    setCourts(dashboardData.courts);
+    setPlayerMatchCounts(dashboardData.playerMatchCounts);
+    setQueues(dashboardData.queues);
+  };
+
+  const refreshDashboard = async ({ signal, showLoading = true } = {}) => {
+    if (!selectedSport) return;
+
+    try {
+      if (showLoading) {
+        setIsPlayersLoading(true);
+        setIsCourtsLoading(true);
+      }
+
+      setPlayersError("");
+      setCourtsError("");
+
+      const dashboardData = await fetchDashboardData(selectedSport.id, signal);
+      applyDashboardData(dashboardData);
+    } catch (fetchError) {
+      if (fetchError.name === "AbortError") return;
+
+      console.error("Dashboard API failed", fetchError);
+      setPlayers([]);
+      setCourts([]);
+      setQueues([]);
+      setPlayerMatchCounts({});
+      setPlayersError("Unable to load players.");
+      setCourtsError("Unable to load courts.");
+    } finally {
+      if (showLoading) {
+        setIsPlayersLoading(false);
+        setIsCourtsLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!selectedSport) {
       setPlayers([]);
@@ -131,69 +216,6 @@ const Home = () => {
     }
 
     const abortController = new AbortController();
-
-    const getDashboardAPI = async () => {
-      try {
-        setIsPlayersLoading(true);
-        setIsCourtsLoading(true);
-        setPlayersError("");
-        setCourtsError("");
-
-        const response = await apiFetch(
-          `/api/sports/${selectedSport.id}/dashboard`,
-          {
-            method: "GET",
-            signal: abortController.signal,
-          },
-        );
-        const data = await response.json();
-
-        if (response.status === 404) {
-          setPlayers([]);
-          setCourts([]);
-          setQueues([]);
-          setPlayerMatchCounts({});
-          return;
-        }
-
-        if (!response.ok || !data.success) {
-          throw new Error(data?.message ?? "Dashboard API failed");
-        }
-
-        const nextPlayers = data.players ?? [];
-        const nextCourts = data.courts ?? [];
-        const nextAvailableCourts = nextCourts.filter(
-          (court) => !court.currentMatch || court.currentMatch.endedAt,
-        );
-        const nextPlayerMatchCounts = {};
-
-        (data.playerMatchCounts ?? []).forEach((item) => {
-          nextPlayerMatchCounts[item.id] = item.matchesPlayed;
-        });
-
-        setPlayers(nextPlayers);
-        setCourts(nextCourts);
-        setPlayerMatchCounts(nextPlayerMatchCounts);
-        setQueues(
-          (data.queuedMatches ?? []).map((match) =>
-            mapMatchToQueue(match, nextAvailableCourts),
-          ),
-        );
-      } catch (fetchError) {
-        if (fetchError.name === "AbortError") return;
-
-        console.error("Dashboard API failed", fetchError);
-        setPlayers([]);
-        setCourts([]);
-        setQueues([]);
-        setPlayerMatchCounts({});
-        setPlayersError("Unable to load players.");
-        setCourtsError("Unable to load courts.");
-      } finally {
-        setIsPlayersLoading(false);
-        setIsCourtsLoading(false);
-      }
-    };
 
     setIsAddPlayerOpen(false);
     setPlayerName("");
@@ -214,7 +236,35 @@ const Home = () => {
     setQueues([]);
     setEditPlayerError("");
     setEditCourtError("");
-    getDashboardAPI();
+    const loadDashboard = async () => {
+      try {
+        setIsPlayersLoading(true);
+        setIsCourtsLoading(true);
+        setPlayersError("");
+        setCourtsError("");
+
+        const dashboardData = await fetchDashboardData(
+          selectedSport.id,
+          abortController.signal,
+        );
+        applyDashboardData(dashboardData);
+      } catch (fetchError) {
+        if (fetchError.name === "AbortError") return;
+
+        console.error("Dashboard API failed", fetchError);
+        setPlayers([]);
+        setCourts([]);
+        setQueues([]);
+        setPlayerMatchCounts({});
+        setPlayersError("Unable to load players.");
+        setCourtsError("Unable to load courts.");
+      } finally {
+        setIsPlayersLoading(false);
+        setIsCourtsLoading(false);
+      }
+    };
+
+    loadDashboard();
 
     return () => {
       abortController.abort();
@@ -609,6 +659,7 @@ const Home = () => {
             : court,
         ),
       );
+      await refreshDashboard({ showLoading: false });
       setActiveCourtMenuId(null);
       setEditCourtName("");
       setEditCourtTeamAPlayerIds([]);
@@ -668,6 +719,7 @@ const Home = () => {
             : court,
         ),
       );
+      await refreshDashboard({ showLoading: false });
     } catch (startCourtError) {
       if (previousCourtSnapshot) {
         setCourts((currentCourts) =>
@@ -723,6 +775,7 @@ const Home = () => {
             : court,
         ),
       );
+      await refreshDashboard({ showLoading: false });
 
       if (activeCourtMenuId === courtId) {
         setActiveCourtMenuId(null);
@@ -797,6 +850,7 @@ const Home = () => {
             : currentCourt,
         ),
       );
+      await refreshDashboard({ showLoading: false });
 
       if (activeCourtMenuId === courtId) {
         setActiveCourtMenuId(null);
@@ -907,6 +961,7 @@ const Home = () => {
       setQueues((currentQueues) =>
         currentQueues.filter((currentQueue) => currentQueue.id !== queueId),
       );
+      await refreshDashboard({ showLoading: false });
     } catch (error) {
       console.error("Delete queue failed", error);
       setQueues((currentQueues) =>
@@ -1001,6 +1056,7 @@ const Home = () => {
             : currentQueue,
         ),
       );
+      await refreshDashboard({ showLoading: false });
       return true;
     } catch (error) {
       console.error("Save queue failed", error);
@@ -1120,6 +1176,7 @@ const Home = () => {
       setQueues((currentQueues) =>
         currentQueues.filter((currentQueue) => currentQueue.id !== queueId),
       );
+      await refreshDashboard({ showLoading: false });
     } catch (error) {
       console.error("Start queue match failed", error);
       setQueues((currentQueues) =>
